@@ -277,12 +277,171 @@ body {
 .coming-soon .cs-icon { font-size: 38px; margin-bottom: 10px; opacity: 0.45; }
 .coming-soon p { font-size: 13px; }
 
+/* ===================== SHARED COMPONENTS ===================== */
+
+/* Card */
+.card {
+  background: white;
+  border: 1px solid rgba(232,144,187,0.22);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(214,88,138,0.08);
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #A07A8E;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+}
+
+/* Alert */
+.alert {
+  display: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  border-left: 3px solid;
+}
+.alert.show { display: block; }
+.alert-s { background: #EAF3DE; color: #3B6D11; border-color: #639922; }
+.alert-e { background: #FDECEC; color: #A32D2D; border-color: #E24B4A; }
+
+/* Warning banner */
+.warn-banner { border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; }
+.warn-banner.exp  { background: #FDECEC; border: 1px solid #E24B4A; }
+.warn-banner.warn { background: #FEF3CD; border: 1px solid #F6C942; }
+.warn-title { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.warn-banner.exp  .warn-title { color: #A32D2D; }
+.warn-banner.warn .warn-title { color: #854F0B; }
+.warn-item { font-size: 12px; padding: 1px 0; }
+.warn-banner.exp  .warn-item { color: #7A1A1A; }
+.warn-banner.warn .warn-item { color: #5A4000; }
+
+/* Form fields */
+.fr { margin-bottom: 12px; }
+.fr label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #A07A8E;
+  margin-bottom: 4px;
+}
+.fr input, .fr select, .fr textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid rgba(232,144,187,0.38);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: #2D1A24;
+  background: white;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fr input:focus, .fr select:focus, .fr textarea:focus {
+  border-color: #E07AAA;
+  box-shadow: 0 0 0 3px rgba(240,168,204,0.18);
+}
+.fr input[readonly] { background: #FEF0F8; color: #C0426E; cursor: default; }
+
+/* Grid */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid rgba(232,144,187,0.38);
+  background: white;
+  color: #2D1A24;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+.btn:hover { background: #FEF0F8; }
+.btn-p { background: #C0426E; color: white; border-color: #C0426E; box-shadow: 0 2px 8px rgba(192,66,110,0.28); }
+.btn-p:hover { background: #D9608E; }
+.btn-d { background: #A32D2D; color: white; border-color: #A32D2D; }
+.btn-d:hover { background: #7A1A1A; }
+.btn-o { background: transparent; color: #C0426E; border-color: #C0426E; }
+.btn-o:hover { background: #FEF0F8; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-xs { padding: 3px 9px; font-size: 11px; border-radius: 6px; }
+
+/* Flex helpers */
+.fe { display: flex; justify-content: flex-end; gap: 8px; }
+.fb { display: flex; justify-content: space-between; align-items: center; }
+.fg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Divider */
+.divider { height: 1px; background: rgba(232,144,187,0.22); margin: 14px 0; }
+
+/* Table */
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left;
+  padding: 8px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #A07A8E;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(232,144,187,0.22);
+  background: #FFF6FA;
+  white-space: nowrap;
+}
+td {
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(232,144,187,0.15);
+  color: #2D1A24;
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #FEF0F8; }
+
+/* Badge */
+.badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.bg-green  { background: #EAF3DE; color: #3B6D11; }
+.bg-red    { background: #FCEBEB; color: #A32D2D; }
+.bg-amber  { background: #FAEEDA; color: #854F0B; }
+.bg-pink   { background: #FEF0F8; color: #C0426E; }
+.bg-gray   { background: #F1EFE8; color: #5F5E5A; }
+.bg-blue   { background: #E3F0FF; color: #1565C0; }
+
+/* Empty state */
+.empty { text-align: center; padding: 32px 16px; color: #A07A8E; }
+.empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.35; }
+.empty p { font-size: 13px; }
+
+/* Standalone search input */
+.search-input {
+  padding: 7px 11px;
+  border: 1px solid rgba(232,144,187,0.38);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: #2D1A24;
+  background: white;
+  outline: none;
+}
+.search-input:focus { border-color: #E07AAA; }
+
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 600px) {
   .content { padding: 12px; }
   .header-top { padding: 11px 14px 8px; }
   .header-nama { font-size: 18px; }
   .header-date { display: none; }
+  .g2, .g3, .g4 { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -327,11 +486,11 @@ body {
   <nav class="nav">
     <button class="nav-btn" onclick="go('masuk')">📥 Obat Masuk</button>
     <button class="nav-btn" onclick="go('stok')">📦 Stok Obat</button>
-    <button class="nav-btn" onclick="go('rekap')">📋 Rekap Keluar</button>
     <button class="nav-btn" onclick="go('buang')">🗑 Buang/Expired</button>
-    <button class="nav-btn" onclick="go('laporan')">📊 Lap. Bulanan</button>
     <button class="nav-btn" onclick="go('layanan')">🏥 Layanan Pasien</button>
+    <button class="nav-btn" onclick="go('rekap')">📋 Rekap Obat Keluar</button>
     <button class="nav-btn" onclick="go('rjtp')">📄 Lap. RJTP</button>
+    <button class="nav-btn" onclick="go('laporan')">📊 Rekap Bulanan</button>
     <button class="nav-btn" onclick="go('shift')">🗓 Jadwal Shift</button>
   </nav>
 </header>
@@ -340,10 +499,47 @@ body {
 <main class="content">
 
   <div class="page" id="page-masuk">
-    <div class="coming-soon">
-      <div class="cs-icon">📥</div>
-      <p>Halaman Obat Masuk — sedang dibangun</p>
+
+    <!-- Peringatan expired -->
+    <div id="warn-masuk"></div>
+
+    <!-- Alert -->
+    <div id="al-masuk" class="alert"></div>
+
+    <!-- Form tambah obat -->
+    <div class="card">
+      <div class="card-title">💊 Tambah Obat Masuk ke Stok</div>
+      <div class="g4">
+        <div class="fr">
+          <label>Nama Obat</label>
+          <input type="text" id="m-nama" placeholder="Contoh: Paracetamol 500mg"
+            onkeydown="if(event.key==='Enter') document.getElementById('m-jml').focus()">
+        </div>
+        <div class="fr">
+          <label>Jumlah</label>
+          <input type="number" id="m-jml" placeholder="0" min="1"
+            onkeydown="if(event.key==='Enter') tambahObatMasuk()">
+        </div>
+        <div class="fr">
+          <label>Tanggal Masuk</label>
+          <input type="date" id="m-tgl">
+        </div>
+        <div class="fr">
+          <label>Tanggal Expired</label>
+          <input type="date" id="m-exp">
+        </div>
+      </div>
+      <div class="fe">
+        <button class="btn btn-p" onclick="tambahObatMasuk()">+ Tambah ke Stok</button>
+      </div>
     </div>
+
+    <!-- Obat masuk hari ini -->
+    <div class="card">
+      <div class="card-title">📋 Obat Masuk Hari Ini</div>
+      <div id="masuk-hari-ini"></div>
+    </div>
+
   </div>
 
   <div class="page" id="page-stok">
@@ -442,7 +638,7 @@ const PASSWORD = 'SenyumSayang';
 const BULAN    = ['Januari','Februari','Maret','April','Mei','Juni',
                   'Juli','Agustus','September','Oktober','November','Desember'];
 const HARI     = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-const PAGES    = ['masuk','stok','rekap','buang','laporan','layanan','rjtp','shift'];
+const PAGES    = ['masuk','stok','buang','layanan','rekap','rjtp','laporan','shift'];
 
 // ===================== STATE GLOBAL =====================
 let batches     = [];
@@ -492,6 +688,9 @@ function go(name) {
   document.getElementById('page-' + name).classList.add('active');
   const idx = PAGES.indexOf(name);
   if (idx >= 0) document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+
+  // Render halaman yang dibuka
+  if (name === 'masuk') { renderWarnMasuk(); renderMasukHariIni(); }
 }
 
 // ===================== LOGIN =====================
@@ -530,7 +729,115 @@ async function cekLogin() {
   document.getElementById('header-date').textContent =
     HARI[d.getDay()] + ', ' + d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' + d.getFullYear();
 
+  // Set tanggal default di form obat masuk
+  const mTgl = document.getElementById('m-tgl');
+  if (mTgl) mTgl.value = today();
+
   go('masuk');
+}
+
+// ===================== HELPERS: STOK =====================
+function daysToExp(tglExp) {
+  if (!tglExp) return 9999;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.floor((new Date(tglExp) - now) / 86400000);
+}
+
+function stokByName(nama) {
+  return batches
+    .filter(b => b.namaObat === nama && b.sisaStok > 0)
+    .reduce((a, b) => a + b.sisaStok, 0);
+}
+
+function allNamaObat() {
+  return [...new Set(batches.map(b => b.namaObat))].sort();
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = msg;
+  setTimeout(() => el.classList.remove('show'), 4500);
+}
+
+// ===================== OBAT MASUK =====================
+function renderWarnMasuk() {
+  const wrap = document.getElementById('warn-masuk');
+  if (!wrap) return;
+
+  const exp  = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) < 0);
+  const warn = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) >= 0 && daysToExp(b.tglExpired) <= 30);
+
+  let h = '';
+  if (exp.length) {
+    h += '<div class="warn-banner exp"><div class="warn-title">🔴 Obat Sudah Expired — Segera Dibuang!</div>';
+    exp.forEach(b => {
+      h += '<div class="warn-item">• ' + b.namaObat + ' — expired: ' + formatTgl(b.tglExpired) + ' (sisa: ' + b.sisaStok + ')</div>';
+    });
+    h += '</div>';
+  }
+  if (warn.length) {
+    h += '<div class="warn-banner warn"><div class="warn-title">⚠️ Obat Akan Expired dalam 30 Hari</div>';
+    warn.forEach(b => {
+      const d = daysToExp(b.tglExpired);
+      h += '<div class="warn-item">• ' + b.namaObat + ' — exp: ' + formatTgl(b.tglExpired) + ' (' + d + ' hari lagi, sisa: ' + b.sisaStok + ')</div>';
+    });
+    h += '</div>';
+  }
+  wrap.innerHTML = h;
+}
+
+function renderMasukHariIni() {
+  const wrap = document.getElementById('masuk-hari-ini');
+  if (!wrap) return;
+
+  const td   = today();
+  const list = batches.filter(b => b.tglMasuk === td);
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>Belum ada obat masuk hari ini.</p></div>';
+    return;
+  }
+
+  let h = '<div class="tw"><table><thead><tr><th>Nama Obat</th><th>Jumlah</th><th>Tgl Expired</th></tr></thead><tbody>';
+  list.forEach(b => {
+    h += '<tr><td><b>' + b.namaObat + '</b></td><td>' + b.jumlah + '</td><td>' + formatTgl(b.tglExpired) + '</td></tr>';
+  });
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+async function tambahObatMasuk() {
+  const namaRaw = document.getElementById('m-nama').value.trim();
+  const nama    = toUpper(namaRaw);
+  const jml     = parseInt(document.getElementById('m-jml').value) || 0;
+  const tgl     = document.getElementById('m-tgl').value || today();
+  const exp     = document.getElementById('m-exp').value;
+
+  if (!nama) { showAlert('al-masuk', 'Nama obat wajib diisi.', 'e'); return; }
+  if (jml <= 0) { showAlert('al-masuk', 'Jumlah harus lebih dari 0.', 'e'); return; }
+
+  const batch = {
+    id       : genId(),
+    namaObat : nama,
+    jumlah   : jml,
+    sisaStok : jml,
+    tglMasuk : tgl,
+    tglExpired: exp || ''
+  };
+  batches.push(batch);
+  await sv('batches', batches);
+
+  // Reset form
+  document.getElementById('m-nama').value = '';
+  document.getElementById('m-jml').value  = '';
+  document.getElementById('m-exp').value  = '';
+  document.getElementById('m-tgl').value  = today();
+  document.getElementById('m-nama').focus();
+
+  showAlert('al-masuk', '✓ ' + nama + ' (' + jml + ') berhasil ditambahkan ke stok!', 's');
+  renderWarnMasuk();
+  renderMasukHariIni();
 }
 
 // ===================== BOOT =====================
