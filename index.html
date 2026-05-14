@@ -856,10 +856,17 @@ async function tambahObatMasuk() {
 
 // ===================== STOK OBAT =====================
 function renderStokStats() {
-  const allNama = allNamaObat();
-  const habis   = allNama.filter(n => stokByName(n) === 0).length;
-  const expB    = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) < 0);
-  const warnB   = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) >= 0 && daysToExp(b.tglExpired) <= 30);
+  const allNama     = allNamaObat();
+  const habis       = allNama.filter(n => stokByName(n) === 0).length;
+  const expB        = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) < 0);
+  const warnB       = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) >= 0 && daysToExp(b.tglExpired) <= 30);
+  const tanpaExp    = batches.filter(b => b.sisaStok > 0 && !b.tglExpired);
+  // Stok baik: ada sisa, punya expired, belum expired, tidak menjelang expired
+  const baikCount   = allNama.filter(n => {
+    const ada = batches.filter(b => b.namaObat === n && b.sisaStok > 0);
+    if (!ada.length) return false;
+    return ada.every(b => b.tglExpired && daysToExp(b.tglExpired) > 30);
+  }).length;
 
   const mkStat = (label, val, color) =>
     '<div class="card" style="margin-bottom:0;padding:14px 16px;border-left:3px solid ' + color + '">' +
@@ -867,10 +874,10 @@ function renderStokStats() {
     '<div style="font-size:26px;font-weight:600;color:' + color + ';line-height:1">' + val + '</div></div>';
 
   document.getElementById('stok-stats').innerHTML =
-    mkStat('Total Jenis Obat', allNama.length, '#C0426E') +
-    mkStat('Stok Habis',       habis,          '#A32D2D') +
-    mkStat('Menjelang Expired', warnB.length,  '#854F0B') +
-    mkStat('Sudah Expired',    expB.length,    '#CC4444');
+    mkStat('Stok Baik',        baikCount,        '#3B6D11') +
+    mkStat('Tanpa Expired',    tanpaExp.length,  '#1565C0') +
+    mkStat('Menjelang Expired', warnB.length,    '#854F0B') +
+    mkStat('Sudah Expired',    expB.length,      '#CC4444');
 }
 
 function renderStok(filter) {
@@ -925,7 +932,7 @@ function renderStok(filter) {
       g.batches.forEach((b, bi) => {
         const d = daysToExp(b.tglExpired);
         const statusBadge = !b.tglExpired
-          ? '<span class="badge bg-gray">Tdk ada</span>'
+          ? '<span class="badge bg-gray">-</span>'
           : d < 0
             ? '<span class="badge bg-red">Expired</span>'
             : d <= 30
@@ -933,8 +940,8 @@ function renderStok(filter) {
               : '<span class="badge bg-green">Baik</span>';
 
         const aksi = '<div style="display:flex;gap:4px">'
-          + '<button class="btn btn-xs btn-o" onclick="editBatch(' + JSON.stringify(b.id) + ')">Edit</button>'
-          + '<button class="btn btn-xs btn-d" onclick="konfirmHapusBatch(' + JSON.stringify(b.id) + ')">Hapus</button>'
+          + '<button class="btn btn-xs btn-o" data-id="' + b.id + '" onclick="editBatch(this.dataset.id)">Edit</button>'
+          + '<button class="btn btn-xs btn-d" data-id="' + b.id + '" onclick="konfirmHapusBatch(this.dataset.id)">Hapus</button>'
           + '</div>';
 
         if (bi === 0) {
@@ -970,14 +977,10 @@ function editBatch(id) {
   const b = batches.find(x => x.id === id);
   if (!b) return;
 
-  // Cari baris yang berisi tombol Edit batch ini
-  const btns = document.querySelectorAll('#stok-wrap button');
-  let targetRow = null;
-  btns.forEach(btn => {
-    if (btn.textContent === 'Edit' && btn.getAttribute('onclick') === "editBatch('" + id + "')") {
-      targetRow = btn.closest('tr');
-    }
-  });
+  // Cari baris lewat data-id
+  const btn = document.querySelector('#stok-wrap button[data-id="' + id + '"]');
+  if (!btn) return;
+  const targetRow = btn.closest('tr');
   if (!targetRow) return;
 
   targetRow.innerHTML = '<td colspan="9" style="padding:14px;background:#FEF0F8">'
@@ -989,7 +992,7 @@ function editBatch(id) {
     + '<div class="fr"><label>Tgl Expired</label><input id="eb-exp" type="date" value="' + (b.tglExpired || '') + '"></div>'
     + '</div>'
     + '<div class="fe"><button class="btn btn-sm" onclick="renderStok()">Batal</button>'
-    + '<button class="btn btn-p btn-sm" onclick="simpanEditBatch(' + JSON.stringify(id) + ')">✓ Simpan</button></div>'
+    + '<button class="btn btn-p btn-sm" onclick="simpanEditBatch(\'' + id + '\')">✓ Simpan</button></div>'
     + '</td>';
 }
 
@@ -1012,19 +1015,17 @@ function konfirmHapusBatch(id) {
   const b = batches.find(x => x.id === id);
   if (!b) return;
 
-  const btns = document.querySelectorAll('#stok-wrap button');
-  let targetRow = null;
-  btns.forEach(btn => {
-    if (btn.textContent === 'Hapus' && btn.getAttribute('onclick') === "konfirmHapusBatch('" + id + "')") {
-      targetRow = btn.closest('tr');
-    }
-  });
+  // Cari baris lewat data-id (ambil tombol Hapus)
+  const btns = document.querySelectorAll('#stok-wrap button[data-id="' + id + '"]');
+  if (!btns.length) return;
+  // Tombol kedua adalah Hapus
+  const targetRow = btns[btns.length - 1].closest('tr');
   if (!targetRow) return;
 
   targetRow.innerHTML = '<td colspan="9" style="padding:10px;background:#FDECEC">'
     + '<div style="display:flex;align-items:center;gap:10px">'
     + '<span style="font-size:13px">Hapus batch <b>' + b.namaObat + '</b>?</span>'
-    + '<button class="btn btn-d btn-sm" onclick="hapusBatch(' + JSON.stringify(id) + ')">Ya, Hapus</button>'
+    + '<button class="btn btn-d btn-sm" onclick="hapusBatch(\'' + id + '\')">Ya, Hapus</button>'
     + '<button class="btn btn-sm" onclick="renderStok()">Batal</button>'
     + '</div></td>';
 }
