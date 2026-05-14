@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
 /* ===================== RESET & BASE ===================== */
@@ -543,10 +544,22 @@ tbody tr:hover td { background: #FEF0F8; }
   </div>
 
   <div class="page" id="page-stok">
-    <div class="coming-soon">
-      <div class="cs-icon">📦</div>
-      <p>Halaman Stok Obat — sedang dibangun</p>
+
+    <!-- Stat cards -->
+    <div id="stok-stats" class="g4" style="margin-bottom:16px"></div>
+
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">Daftar Stok Obat</div>
+        <div class="fg">
+          <input class="search-input" type="text" placeholder="🔍 Cari obat..."
+            oninput="renderStok(this.value)" style="width:180px">
+          <button class="btn btn-p btn-sm" onclick="dlStok()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="stok-wrap"></div>
     </div>
+
   </div>
 
   <div class="page" id="page-rekap">
@@ -691,6 +704,7 @@ function go(name) {
 
   // Render halaman yang dibuka
   if (name === 'masuk') { renderWarnMasuk(); renderMasukHariIni(); }
+  if (name === 'stok')  { renderStok(); }
 }
 
 // ===================== LOGIN =====================
@@ -838,6 +852,208 @@ async function tambahObatMasuk() {
   showAlert('al-masuk', '✓ ' + nama + ' (' + jml + ') berhasil ditambahkan ke stok!', 's');
   renderWarnMasuk();
   renderMasukHariIni();
+}
+
+// ===================== STOK OBAT =====================
+function renderStokStats() {
+  const allNama = allNamaObat();
+  const habis   = allNama.filter(n => stokByName(n) === 0).length;
+  const expB    = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) < 0);
+  const warnB   = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) >= 0 && daysToExp(b.tglExpired) <= 30);
+
+  const mkStat = (label, val, color) =>
+    '<div class="card" style="margin-bottom:0;padding:14px 16px;border-left:3px solid ' + color + '">' +
+    '<div style="font-size:11px;color:#A07A8E;font-weight:500;margin-bottom:3px">' + label + '</div>' +
+    '<div style="font-size:26px;font-weight:600;color:' + color + ';line-height:1">' + val + '</div></div>';
+
+  document.getElementById('stok-stats').innerHTML =
+    mkStat('Total Jenis Obat', allNama.length, '#C0426E') +
+    mkStat('Stok Habis',       habis,          '#A32D2D') +
+    mkStat('Menjelang Expired', warnB.length,  '#854F0B') +
+    mkStat('Sudah Expired',    expB.length,    '#CC4444');
+}
+
+function renderStok(filter) {
+  filter = (filter || '').toLowerCase();
+  renderStokStats();
+
+  const wrap = document.getElementById('stok-wrap');
+  if (!batches.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">💊</div><p>Belum ada stok obat.</p></div>';
+    return;
+  }
+
+  // Kelompokkan per nama obat
+  const grouped = {};
+  batches
+    .filter(b => !filter || b.namaObat.toLowerCase().includes(filter))
+    .forEach(b => {
+      if (!grouped[b.namaObat]) grouped[b.namaObat] = { nama: b.namaObat, batches: [] };
+      grouped[b.namaObat].batches.push(b);
+    });
+
+  const groups = Object.values(grouped).sort((a, b) => a.nama.localeCompare(b.nama));
+  if (!groups.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>Tidak ada hasil pencarian.</p></div>';
+    return;
+  }
+
+  // Kategorikan grup
+  const katGrup = g => {
+    const ds = g.batches.map(b => daysToExp(b.tglExpired));
+    if (ds.some(d => d < 0))  return 'exp';
+    if (ds.some(d => d <= 30)) return 'warn';
+    return 'good';
+  };
+  const gExp  = groups.filter(g => katGrup(g) === 'exp');
+  const gWarn = groups.filter(g => katGrup(g) === 'warn');
+  const gGood = groups.filter(g => katGrup(g) === 'good');
+
+  let html = '';
+
+  const mkSection = (title, color, list) => {
+    if (!list.length) return '';
+    let s = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0 6px;border-bottom:1px solid rgba(232,144,187,0.22);margin-bottom:4px;margin-top:12px">';
+    s += '<span style="color:' + color + ';font-size:12px;font-weight:600">' + title + '</span>';
+    s += '<span class="badge" style="background:' + color + '22;color:' + color + '">' + list.length + ' jenis</span></div>';
+    s += '<div class="tw"><table><thead><tr>';
+    s += '<th>Nama Obat</th><th>Total Sisa</th><th>Batch</th><th>Stok Awal</th><th>Tgl Masuk</th><th>Tgl Expired</th><th>Sisa</th><th>Status</th><th>Aksi</th>';
+    s += '</tr></thead><tbody>';
+
+    list.forEach(g => {
+      const totalSisa = g.batches.reduce((a, b) => a + b.sisaStok, 0);
+      g.batches.forEach((b, bi) => {
+        const d = daysToExp(b.tglExpired);
+        const statusBadge = !b.tglExpired
+          ? '<span class="badge bg-gray">Tdk ada</span>'
+          : d < 0
+            ? '<span class="badge bg-red">Expired</span>'
+            : d <= 30
+              ? '<span class="badge bg-amber">' + d + ' hr lagi</span>'
+              : '<span class="badge bg-green">Baik</span>';
+
+        const aksi = '<div style="display:flex;gap:4px">'
+          + '<button class="btn btn-xs btn-o" onclick="editBatch(' + JSON.stringify(b.id) + ')">Edit</button>'
+          + '<button class="btn btn-xs btn-d" onclick="konfirmHapusBatch(' + JSON.stringify(b.id) + ')">Hapus</button>'
+          + '</div>';
+
+        if (bi === 0) {
+          s += '<tr style="border-top:2px solid rgba(232,144,187,0.3)">'
+            + '<td rowspan="' + g.batches.length + '" style="font-weight:600;vertical-align:top;padding-top:12px">'
+            + g.nama + '<br><span style="font-size:11px;color:#A07A8E;font-weight:400">Total sisa: ' + totalSisa + '</span></td>'
+            + '<td rowspan="' + g.batches.length + '" style="font-size:20px;font-weight:700;vertical-align:top;padding-top:12px;color:#C0426E">' + totalSisa + '</td>';
+        } else {
+          s += '<tr>';
+        }
+        s += '<td style="color:#A07A8E;font-size:11px">#' + (bi + 1) + '</td>'
+          + '<td>' + b.jumlah + '</td>'
+          + '<td>' + formatTgl(b.tglMasuk) + '</td>'
+          + '<td>' + formatTgl(b.tglExpired) + '</td>'
+          + '<td><b>' + b.sisaStok + '</b></td>'
+          + '<td>' + statusBadge + '</td>'
+          + '<td>' + aksi + '</td>'
+          + '</tr>';
+      });
+    });
+    s += '</tbody></table></div>';
+    return s;
+  };
+
+  if (gExp.length)  html += mkSection('🔴 Sudah Expired', '#A32D2D', gExp);
+  if (gWarn.length) html += mkSection('⚠️ Menjelang Expired (≤30 hari)', '#854F0B', gWarn);
+  if (gGood.length) html += mkSection('✅ Stok Baik', '#3B6D11', gGood);
+
+  wrap.innerHTML = html;
+}
+
+function editBatch(id) {
+  const b = batches.find(x => x.id === id);
+  if (!b) return;
+
+  // Cari baris yang berisi tombol Edit batch ini
+  const btns = document.querySelectorAll('#stok-wrap button');
+  let targetRow = null;
+  btns.forEach(btn => {
+    if (btn.textContent === 'Edit' && btn.getAttribute('onclick') === "editBatch('" + id + "')") {
+      targetRow = btn.closest('tr');
+    }
+  });
+  if (!targetRow) return;
+
+  targetRow.innerHTML = '<td colspan="9" style="padding:14px;background:#FEF0F8">'
+    + '<div class="g4" style="margin-bottom:12px">'
+    + '<div class="fr"><label>Nama Obat</label><input id="eb-nama" type="text" value="' + b.namaObat + '" style="text-transform:uppercase"></div>'
+    + '<div class="fr"><label>Stok Awal</label><input id="eb-awal" type="number" value="' + b.jumlah + '" min="0"></div>'
+    + '<div class="fr"><label>Sisa Stok</label><input id="eb-sisa" type="number" value="' + b.sisaStok + '" min="0"></div>'
+    + '<div class="fr"><label>Tgl Masuk</label><input id="eb-masuk" type="date" value="' + (b.tglMasuk || '') + '"></div>'
+    + '<div class="fr"><label>Tgl Expired</label><input id="eb-exp" type="date" value="' + (b.tglExpired || '') + '"></div>'
+    + '</div>'
+    + '<div class="fe"><button class="btn btn-sm" onclick="renderStok()">Batal</button>'
+    + '<button class="btn btn-p btn-sm" onclick="simpanEditBatch(' + JSON.stringify(id) + ')">✓ Simpan</button></div>'
+    + '</td>';
+}
+
+async function simpanEditBatch(id) {
+  const b = batches.find(x => x.id === id);
+  if (!b) return;
+
+  b.namaObat   = (document.getElementById('eb-nama').value.trim()).toUpperCase();
+  b.jumlah     = parseInt(document.getElementById('eb-awal').value) || 0;
+  b.sisaStok   = parseInt(document.getElementById('eb-sisa').value) || 0;
+  b.tglMasuk   = document.getElementById('eb-masuk').value;
+  b.tglExpired = document.getElementById('eb-exp').value;
+
+  await sv('batches', batches);
+  renderStok();
+  renderWarnMasuk();
+}
+
+function konfirmHapusBatch(id) {
+  const b = batches.find(x => x.id === id);
+  if (!b) return;
+
+  const btns = document.querySelectorAll('#stok-wrap button');
+  let targetRow = null;
+  btns.forEach(btn => {
+    if (btn.textContent === 'Hapus' && btn.getAttribute('onclick') === "konfirmHapusBatch('" + id + "')") {
+      targetRow = btn.closest('tr');
+    }
+  });
+  if (!targetRow) return;
+
+  targetRow.innerHTML = '<td colspan="9" style="padding:10px;background:#FDECEC">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<span style="font-size:13px">Hapus batch <b>' + b.namaObat + '</b>?</span>'
+    + '<button class="btn btn-d btn-sm" onclick="hapusBatch(' + JSON.stringify(id) + ')">Ya, Hapus</button>'
+    + '<button class="btn btn-sm" onclick="renderStok()">Batal</button>'
+    + '</div></td>';
+}
+
+async function hapusBatch(id) {
+  batches = batches.filter(x => x.id !== id);
+  await sv('batches', batches);
+  renderStok();
+  renderWarnMasuk();
+}
+
+function dlStok() {
+  if (!batches.length) { alert('Stok masih kosong.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Library XLSX belum dimuat.'); return; }
+
+  const rows = [['No','Nama Obat','Sisa Stok','Stok Awal','Tgl Masuk','Tgl Expired','Status']];
+  batches
+    .sort((a, b) => a.namaObat.localeCompare(b.namaObat))
+    .forEach((b, i) => {
+      const d  = daysToExp(b.tglExpired);
+      const st = !b.tglExpired ? 'Baik' : d < 0 ? 'Expired' : d <= 30 ? 'Menjelang Expired' : 'Baik';
+      rows.push([i + 1, b.namaObat, b.sisaStok, b.jumlah, b.tglMasuk || '-', b.tglExpired || '-', st]);
+    });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stok Obat');
+  const tgl = today().replace(/-/g, '');
+  XLSX.writeFile(wb, 'STOK_OBAT_' + tgl + '.xlsx');
 }
 
 // ===================== BOOT =====================
