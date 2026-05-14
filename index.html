@@ -825,6 +825,12 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
 
       <!-- Obat Desa -->
       <div id="wrap-obat-desa">
+        <div style="margin-bottom:8px">
+          <input class="search-input" type="text" id="search-obat-desa"
+            placeholder="🔍 Cari nama obat..."
+            oninput="filterObatDesa(this.value)"
+            style="width:100%;max-width:320px">
+        </div>
         <div id="pilih-obat-desa"></div>
       </div>
 
@@ -1761,6 +1767,35 @@ function togObatDesa(el) {
   }
 }
 
+// ---- Filter obat desa ----
+function filterObatDesa(q) {
+  q = (q || '').toLowerCase().trim();
+  const wrap = document.getElementById('pilih-obat-desa');
+  if (!wrap) return;
+
+  // Tampilkan/sembunyikan item berdasarkan query
+  // Item bisa berupa .obat-item langsung atau wrapper div (multi-batch)
+  const items = wrap.children;
+  Array.from(items).forEach(item => {
+    // Ambil nama obat dari label atau heading
+    const label = item.querySelector('label');
+    const heading = item.querySelector('div[style*="font-weight:600"]');
+    const namaEl = label || heading;
+    if (!namaEl) return;
+
+    const nama = namaEl.textContent.toLowerCase();
+
+    // Jangan sembunyikan jika ada yang sudah dicentang di dalamnya
+    const checkedInside = item.querySelector('input[type=checkbox]:checked');
+
+    if (!q || nama.includes(q) || checkedInside) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
 // ---- Reset form ----
 function resetFormLayanan() {
   document.getElementById('jk-baru').checked  = true;
@@ -1784,6 +1819,8 @@ function resetFormLayanan() {
   loadedPasienId   = null;
   loadedPasienSnap = null;
   document.getElementById('wrap-simpan-pasien').style.display = 'none';
+  const searchObat = document.getElementById('search-obat-desa');
+  if (searchObat) searchObat.value = '';
   renderObatDesaPilihan();
   renderDiagnosaTags();
 }
