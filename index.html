@@ -724,7 +724,7 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
         <div class="fr" style="margin-bottom:0;position:relative">
           <label>Cari Nama Pasien</label>
           <input type="text" id="search-pasien" placeholder="Ketik nama pasien..."
-            oninput="cariPasien(this.value)" autocomplete="off">
+            oninput="this.value=this.value.toUpperCase();cariPasien(this.value)" autocomplete="off">
           <div id="autocomplete-list" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid rgba(232,144,187,0.38);border-radius:8px;box-shadow:0 4px 16px rgba(192,66,110,0.15);z-index:200;max-height:200px;overflow-y:auto"></div>
         </div>
       </div>
@@ -773,6 +773,11 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
           </select>
         </div>
         <div class="fr"><label>Tanggal Layanan</label><input type="date" id="lp-tgl"></div>
+      </div>
+
+      <!-- Tombol simpan perubahan data pasien (muncul jika ada perubahan saat kunjungan lama) -->
+      <div id="wrap-simpan-pasien" style="display:none;margin-bottom:12px">
+        <button class="btn btn-o btn-sm" onclick="simpanPerubahanPasien()">💾 Simpan Perubahan Data Pasien</button>
       </div>
 
       <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
@@ -1453,8 +1458,10 @@ function dlBuang() {
 // ===================== LAYANAN PASIEN =====================
 const DIAGNOSA_TAGS = ['Demam','Flu','Batuk','Diare','Hipertensi','Diabetes',
                        'ISPA','Pusing','Mual','Maag','Luka','Alergi'];
-let selLayanan  = '';
-let selObatDesa = {}; // { namaObat: { namaObat, qty } }
+let selLayanan    = '';
+let selObatDesa   = {}; // { batchId: { namaObat, batchId, qty } }
+let loadedPasienId = null;   // id pasien yang sedang di-load (kunjungan lama)
+let loadedPasienSnap = null; // snapshot data pasien saat di-load
 
 function initFormLayanan() {
   // Set tanggal hari ini
@@ -1492,7 +1499,12 @@ function initFormLayanan() {
 function onJenisKunjunganChange() {
   const val = document.querySelector('input[name="jns-kunjungan"]:checked').value;
   document.getElementById('wrap-search-pasien').style.display = val === 'lama' ? 'block' : 'none';
-  if (val === 'baru') clearDataPasienForm();
+  if (val === 'baru') {
+    clearDataPasienForm();
+    loadedPasienId   = null;
+    loadedPasienSnap = null;
+    document.getElementById('wrap-simpan-pasien').style.display = 'none';
+  }
 }
 
 function onTipeIdChange() {
@@ -1567,13 +1579,84 @@ function pilihPasien(id) {
     document.getElementById('lp-noid').placeholder = '16 digit NIK...';
   }
 
-  document.getElementById('lp-nama').value    = p.nama;
-  document.getElementById('lp-jk').value      = p.jk || '';
+  document.getElementById('lp-nama').value     = p.nama;
+  document.getElementById('lp-jk').value       = p.jk || '';
   document.getElementById('lp-tgllahir').value = p.tglLahir || '';
-  document.getElementById('lp-umur').value    = p.umur || hitungUmur(p.tglLahir) || '';
-  document.getElementById('lp-desa').value    = p.desa || '';
+  document.getElementById('lp-umur').value     = p.umur || hitungUmur(p.tglLahir) || '';
+  document.getElementById('lp-desa').value     = p.desa || '';
   document.getElementById('search-pasien').value = p.nama;
   document.getElementById('autocomplete-list').style.display = 'none';
+
+  // Simpan snapshot untuk deteksi perubahan
+  loadedPasienId   = p.id;
+  loadedPasienSnap = {
+    noid    : p.bpjs || p.nik || '',
+    tipeId  : p.bpjs ? 'bpjs' : 'nik',
+    nama    : p.nama,
+    jk      : p.jk || '',
+    tglLahir: p.tglLahir || '',
+    desa    : p.desa || ''
+  };
+
+  // Pasang listener perubahan pada field data pasien
+  const pasienFields = ['lp-noid','lp-nama','lp-tgllahir'];
+  pasienFields.forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) el.oninput = cekPerubahanPasien;
+  });
+  ['lp-jk','lp-desa','ti-bpjs','ti-nik'].forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) el.onchange = cekPerubahanPasien;
+  });
+
+  document.getElementById('wrap-simpan-pasien').style.display = 'none';
+}
+
+function cekPerubahanPasien() {
+  if (!loadedPasienSnap) return;
+
+  const curNoid   = document.getElementById('lp-noid').value.trim();
+  const curNama   = document.getElementById('lp-nama').value.trim();
+  const curJk     = document.getElementById('lp-jk').value;
+  const curTgl    = document.getElementById('lp-tgllahir').value;
+  const curDesa   = document.getElementById('lp-desa').value;
+  const curTipeId = document.querySelector('input[name="tipe-id"]:checked').value;
+
+  const berubah = curNoid    !== loadedPasienSnap.noid
+               || curNama    !== loadedPasienSnap.nama
+               || curJk      !== loadedPasienSnap.jk
+               || curTgl     !== loadedPasienSnap.tglLahir
+               || curDesa    !== loadedPasienSnap.desa
+               || curTipeId  !== loadedPasienSnap.tipeId;
+
+  document.getElementById('wrap-simpan-pasien').style.display = berubah ? 'block' : 'none';
+}
+
+async function simpanPerubahanPasien() {
+  if (!loadedPasienId) return;
+  const p = pasienData.find(x => x.id === loadedPasienId);
+  if (!p) return;
+
+  const tipeId = document.querySelector('input[name="tipe-id"]:checked').value;
+  const noid   = document.getElementById('lp-noid').value.trim();
+
+  // Update profil pasien
+  p.nama     = document.getElementById('lp-nama').value.trim().toUpperCase();
+  p.jk       = document.getElementById('lp-jk').value;
+  p.tglLahir = document.getElementById('lp-tgllahir').value;
+  p.umur     = hitungUmur(p.tglLahir);
+  p.desa     = document.getElementById('lp-desa').value;
+
+  // Update nomor id
+  if (tipeId === 'bpjs') { p.bpjs = noid; delete p.nik; }
+  else                   { p.nik  = noid; delete p.bpjs; }
+
+  await sv('pasien', pasienData);
+
+  // Update snapshot
+  loadedPasienSnap = { noid, tipeId, nama: p.nama, jk: p.jk, tglLahir: p.tglLahir, desa: p.desa };
+  document.getElementById('wrap-simpan-pasien').style.display = 'none';
+  showAlert('al-layanan', '✓ Data pasien ' + p.nama + ' berhasil diperbarui.', 's');
 }
 
 // ---- Diagnosa tags ----
@@ -1581,7 +1664,7 @@ function renderDiagnosaTags() {
   const wrap = document.getElementById('diagnosa-tags');
   if (!wrap) return;
   wrap.innerHTML = DIAGNOSA_TAGS.map(t =>
-    '<button class="diagnosa-tag" data-val="' + t + '" onclick="togDiagnosaBtn(this)">' + t + '</button>'
+    '<button class="diagnosa-tag" data-val="' + t.toUpperCase() + '" onclick="togDiagnosaBtn(this)">' + t.toUpperCase() + '</button>'
   ).join('');
 }
 
@@ -1697,7 +1780,10 @@ function resetFormLayanan() {
   ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('lp-tgl').value = today();
 
-  selObatDesa = {};
+  selObatDesa      = {};
+  loadedPasienId   = null;
+  loadedPasienSnap = null;
+  document.getElementById('wrap-simpan-pasien').style.display = 'none';
   renderObatDesaPilihan();
   renderDiagnosaTags();
 }
