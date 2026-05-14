@@ -570,10 +570,47 @@ tbody tr:hover td { background: #FEF0F8; }
   </div>
 
   <div class="page" id="page-buang">
-    <div class="coming-soon">
-      <div class="cs-icon">🗑</div>
-      <p>Halaman Buang/Expired — sedang dibangun</p>
+
+    <div id="al-buang" class="alert"></div>
+
+    <div class="card">
+      <div class="card-title">🗑 Catat Pembuangan / Pemusnahan Obat</div>
+      <div class="g3">
+        <div class="fr">
+          <label>Pilih Batch Obat</label>
+          <select id="b-sel"><option value="">-- Pilih batch --</option></select>
+        </div>
+        <div class="fr">
+          <label>Jumlah Dibuang</label>
+          <input type="number" id="b-jml" placeholder="0" min="1">
+        </div>
+        <div class="fr">
+          <label>Alasan</label>
+          <select id="b-als">
+            <option value="expired">Expired / Kadaluarsa</option>
+            <option value="rusak">Rusak / Cacat</option>
+            <option value="hilang">Hilang</option>
+            <option value="lainnya">Lainnya</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <label>Catatan Tambahan (opsional)</label>
+        <input type="text" id="b-cat" placeholder="Keterangan tambahan...">
+      </div>
+      <div class="fe">
+        <button class="btn btn-d" onclick="simpanBuang()">Catat Pembuangan</button>
+      </div>
     </div>
+
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">Riwayat Pembuangan</div>
+        <button class="btn btn-p btn-sm" onclick="dlBuang()">⬇ Unduh XLSX</button>
+      </div>
+      <div id="buang-wrap"></div>
+    </div>
+
   </div>
 
   <div class="page" id="page-laporan">
@@ -705,6 +742,7 @@ function go(name) {
   // Render halaman yang dibuka
   if (name === 'masuk') { renderWarnMasuk(); renderMasukHariIni(); }
   if (name === 'stok')  { renderStok(); }
+  if (name === 'buang') { renderBuangSel(); renderBuangRiwayat(); }
 }
 
 // ===================== LOGIN =====================
@@ -1053,6 +1091,135 @@ function dlStok() {
   XLSX.utils.book_append_sheet(wb, ws, 'Stok Obat');
   const tgl = today().replace(/-/g, '');
   XLSX.writeFile(wb, 'STOK_OBAT_' + tgl + '.xlsx');
+}
+
+// ===================== BUANG / EXPIRED =====================
+const ALASAN_LABEL = {
+  expired : 'Expired / Kadaluarsa',
+  rusak   : 'Rusak / Cacat',
+  hilang  : 'Hilang',
+  lainnya : 'Lainnya'
+};
+
+function renderBuangSel() {
+  const sel = document.getElementById('b-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Pilih batch obat --</option>';
+  batches
+    .filter(b => b.sisaStok > 0)
+    .sort((a, b) => a.namaObat.localeCompare(b.namaObat))
+    .forEach(b => {
+      const d    = daysToExp(b.tglExpired);
+      const info = b.tglExpired
+        ? (d < 0 ? ' [EXPIRED]' : ' [exp: ' + formatTgl(b.tglExpired) + ']')
+        : '';
+      sel.innerHTML += '<option value="' + b.id + '">'
+        + b.namaObat + info + ' — sisa ' + b.sisaStok
+        + '</option>';
+    });
+}
+
+function renderBuangRiwayat() {
+  const wrap = document.getElementById('buang-wrap');
+  if (!wrap) return;
+
+  if (!buangData.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🗑</div><p>Belum ada riwayat pembuangan.</p></div>';
+    return;
+  }
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama Obat</th><th>Jumlah</th>'
+    + '<th>Alasan</th><th>Catatan</th><th>Aksi</th>'
+    + '</tr></thead><tbody>';
+
+  buangData.forEach((d, i) => {
+    h += '<tr>'
+      + '<td style="color:#A07A8E">' + (i + 1) + '</td>'
+      + '<td>' + formatTgl(d.tgl) + '</td>'
+      + '<td><b>' + d.namaObat + '</b></td>'
+      + '<td>' + d.jumlah + '</td>'
+      + '<td><span class="badge bg-red">' + (ALASAN_LABEL[d.alasan] || d.alasan) + '</span></td>'
+      + '<td style="font-size:12px;color:#A07A8E">' + (d.catatan || '-') + '</td>'
+      + '<td><button class="btn btn-xs btn-d" data-id="' + d.id + '" onclick="konfirmHapusBuang(this.dataset.id)">Hapus</button></td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+async function simpanBuang() {
+  const bid  = document.getElementById('b-sel').value;
+  const jml  = parseInt(document.getElementById('b-jml').value) || 0;
+  const als  = document.getElementById('b-als').value;
+  const cat  = document.getElementById('b-cat').value.trim();
+
+  if (!bid) { showAlert('al-buang', 'Pilih batch obat terlebih dahulu.', 'e'); return; }
+
+  const b = batches.find(x => x.id === bid);
+  if (!b) return;
+
+  if (jml <= 0 || jml > b.sisaStok) {
+    showAlert('al-buang', 'Jumlah tidak valid. Sisa stok: ' + b.sisaStok + '.', 'e');
+    return;
+  }
+
+  b.sisaStok -= jml;
+  await sv('batches', batches);
+
+  buangData.unshift({
+    id      : genId(),
+    tgl     : today(),
+    batchId : bid,
+    namaObat: b.namaObat,
+    jumlah  : jml,
+    alasan  : als,
+    catatan : cat
+  });
+  await sv('buang', buangData);
+
+  showAlert('al-buang', '✓ ' + jml + ' ' + b.namaObat + ' berhasil dicatat sebagai dibuang.', 's');
+  document.getElementById('b-jml').value = '';
+  document.getElementById('b-cat').value = '';
+  renderBuangSel();
+  renderBuangRiwayat();
+}
+
+function konfirmHapusBuang(id) {
+  const btn = document.querySelector('#buang-wrap button[data-id="' + id + '"]');
+  if (!btn) return;
+  const row = btn.closest('tr');
+  if (!row) return;
+
+  const d = buangData.find(x => x.id === id);
+  if (!d) return;
+
+  row.innerHTML = '<td colspan="7" style="padding:10px;background:#FDECEC">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<span style="font-size:13px">Hapus catatan pembuangan <b>' + d.namaObat + '</b>?</span>'
+    + '<button class="btn btn-d btn-sm" onclick="hapusBuang(\'' + id + '\')">Ya, Hapus</button>'
+    + '<button class="btn btn-sm" onclick="renderBuangRiwayat()">Batal</button>'
+    + '</div></td>';
+}
+
+async function hapusBuang(id) {
+  buangData = buangData.filter(x => x.id !== id);
+  await sv('buang', buangData);
+  renderBuangRiwayat();
+}
+
+function dlBuang() {
+  if (!buangData.length) { alert('Riwayat pembuangan masih kosong.'); return; }
+
+  const rows = [['No','Tanggal','Nama Obat','Jumlah','Alasan','Catatan']];
+  buangData.forEach((d, i) => {
+    rows.push([i + 1, d.tgl, d.namaObat, d.jumlah, ALASAN_LABEL[d.alasan] || d.alasan, d.catatan || '-']);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Riwayat Buang');
+  XLSX.writeFile(wb, 'BUANG_OBAT_' + today().replace(/-/g, '') + '.xlsx');
 }
 
 // ===================== BOOT =====================
