@@ -628,9 +628,16 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
   </div>
 
   <div class="page" id="page-rekap">
-    <div class="coming-soon">
-      <div class="cs-icon">📋</div>
-      <p>Halaman Rekap Keluar — sedang dibangun</p>
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">📋 Rekap Obat Keluar</div>
+        <div class="fg">
+          <input class="search-input" type="text" placeholder="🔍 Cari nama pasien..."
+            oninput="renderRekap(this.value)" style="width:200px">
+          <button class="btn btn-p btn-sm" onclick="dlRekap()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="rekap-wrap"></div>
     </div>
   </div>
 
@@ -982,6 +989,7 @@ function go(name) {
   if (name === 'stok')  { renderStok(); }
   if (name === 'buang')   { renderBuangSel(); renderBuangRiwayat(); }
   if (name === 'layanan') { initFormLayanan(); renderLayanan(); }
+  if (name === 'rekap')   { renderRekap(); }
 }
 
 // ===================== LOGIN =====================
@@ -2200,6 +2208,81 @@ function dlLayanan() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Layanan Pasien');
   XLSX.writeFile(wb, 'LAYANAN_PASIEN_' + today().replace(/-/g,'') + '.xlsx');
+}
+
+// ===================== REKAP OBAT KELUAR =====================
+function renderRekap(filter) {
+  filter = (filter || '').toLowerCase();
+  const wrap = document.getElementById('rekap-wrap');
+  if (!wrap) return;
+
+  // Ambil hanya layanan yang ada obat desa
+  const data = layananData
+    .filter(r => r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
+    .filter(r => !filter || r.namaPasien.toLowerCase().includes(filter))
+    .sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Belum ada rekap obat keluar.</p></div>';
+    return;
+  }
+
+  const jlbl = {
+    'kunjungan-rumah': '🏠 Kunjungan Rumah',
+    'posyandu'       : '👶 Posyandu',
+    'kantor-desa'    : '🏛 Kantor Desa'
+  };
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama Pasien</th><th>Desa</th>'
+    + '<th>Jenis Layanan</th><th>Diagnosa</th><th>Obat Diberikan</th>'
+    + '</tr></thead><tbody>';
+
+  data.forEach((r, i) => {
+    const obatStr = r.obat.map(o =>
+      '<span class="badge bg-pink" style="margin:1px;font-size:10px">'
+      + o.namaObat + ' ×' + o.qty + '</span>'
+    ).join(' ');
+
+    h += '<tr>'
+      + '<td style="color:#A07A8E">' + (i + 1) + '</td>'
+      + '<td style="white-space:nowrap">' + formatTgl(r.tgl) + '</td>'
+      + '<td><b>' + r.namaPasien + '</b><br>'
+      + '<span style="font-size:11px;color:#A07A8E">' + (r.desa || '-') + '</span></td>'
+      + '<td style="font-size:12px">' + (r.desa || '-') + '</td>'
+      + '<td style="font-size:12px">' + (jlbl[r.jenisLayanan] || r.jenisLayanan || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.diagnosa || '-') + '</td>'
+      + '<td>' + obatStr + '</td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+function dlRekap() {
+  const data = layananData
+    .filter(r => r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
+    .sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) { alert('Belum ada data rekap obat keluar.'); return; }
+
+  const rows = [['No','Tanggal','Nama Pasien','Desa','Jenis Layanan','Diagnosa','Obat Diberikan']];
+  data.forEach((r, i) => {
+    rows.push([
+      i + 1,
+      r.tgl,
+      r.namaPasien,
+      r.desa || '-',
+      r.jenisLayanan,
+      r.diagnosa || '-',
+      r.obat.map(o => o.namaObat + ' x' + o.qty).join(', ')
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekap Obat Keluar');
+  XLSX.writeFile(wb, 'REKAP_OBAT_KELUAR_' + today().replace(/-/g, '') + '.xlsx');
 }
 
 // ===================== BOOT =====================
