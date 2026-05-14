@@ -436,6 +436,71 @@ tbody tr:hover td { background: #FEF0F8; }
 }
 .search-input:focus { border-color: #E07AAA; }
 
+/* ===================== LAYANAN PASIEN ===================== */
+.radio-lbl {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #A07A8E;
+  background: white;
+  transition: all 0.15s;
+  margin: 0;
+  user-select: none;
+}
+input[type=radio]:checked + .radio-lbl {
+  background: #C0426E;
+  color: white;
+}
+.radio-lbl:hover { background: #FEF0F8; }
+input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
+
+.pill-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid rgba(232,144,187,0.38);
+  background: white;
+  color: #A07A8E;
+  font-family: "DM Sans", sans-serif;
+  transition: all 0.15s;
+}
+.pill-btn:hover { border-color: #C0426E; color: #C0426E; }
+.pill-btn.active { background: #C0426E; color: white; border-color: #C0426E; }
+
+.obat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  margin-bottom: 4px;
+  background: #FFF6FA;
+  border: 1px solid rgba(232,144,187,0.22);
+  border-radius: 8px;
+}
+.obat-item input[type=checkbox] { width: 15px; height: 15px; accent-color: #C0426E; flex-shrink: 0; }
+.obat-item label { flex: 1; font-size: 13px; cursor: pointer; }
+.obat-item .stok-info { font-size: 11px; color: #A07A8E; }
+.obat-qty { width: 75px; display: none; }
+
+.diagnosa-tag {
+  background: #FEF0F8;
+  color: #C0426E;
+  border: 1px solid rgba(192,66,110,0.2);
+  border-radius: 20px;
+  padding: 3px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: all 0.15s;
+}
+.diagnosa-tag:hover { background: #F4B3D2; }
+.diagnosa-tag.active { background: #C0426E; color: white; }
+
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 600px) {
   .content { padding: 12px; }
@@ -621,10 +686,153 @@ tbody tr:hover td { background: #FEF0F8; }
   </div>
 
   <div class="page" id="page-layanan">
-    <div class="coming-soon">
-      <div class="cs-icon">🏥</div>
-      <p>Halaman Layanan Pasien — sedang dibangun</p>
+
+    <div id="al-layanan" class="alert"></div>
+
+    <!-- FORM ENTRI -->
+    <div class="card">
+      <div class="card-title">🏥 Entri Layanan Pasien</div>
+
+      <!-- Langkah 1: Jenis Kunjungan -->
+      <div class="fr">
+        <label>Langkah 1 — Jenis Kunjungan</label>
+        <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden">
+          <input type="radio" name="jns-kunjungan" id="jk-baru" value="baru" style="display:none" checked>
+          <label for="jk-baru" class="radio-lbl">🆕 Kunjungan Baru</label>
+          <input type="radio" name="jns-kunjungan" id="jk-lama" value="lama" style="display:none">
+          <label for="jk-lama" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">🔄 Kunjungan Lama</label>
+        </div>
+      </div>
+
+      <!-- Langkah 2: Jenis Layanan -->
+      <div class="fr">
+        <label>Langkah 2 — Jenis Layanan</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="pill-btn" onclick="pilihLayanan(this,'kunjungan-rumah')">🏠 Kunjungan Rumah</button>
+          <button class="pill-btn" onclick="pilihLayanan(this,'posyandu')">👶 Posyandu</button>
+          <button class="pill-btn" onclick="pilihLayanan(this,'kantor-desa')">🏛 Kantor Desa</button>
+        </div>
+      </div>
+
+      <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
+
+      <!-- Langkah 3: Data Pasien -->
+      <div class="card-title">👤 Data Pasien</div>
+
+      <!-- Search pasien lama -->
+      <div id="wrap-search-pasien" style="display:none;margin-bottom:12px">
+        <div class="fr" style="margin-bottom:0;position:relative">
+          <label>Cari Nama Pasien</label>
+          <input type="text" id="search-pasien" placeholder="Ketik nama pasien..."
+            oninput="cariPasien(this.value)" autocomplete="off">
+          <div id="autocomplete-list" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid rgba(232,144,187,0.38);border-radius:8px;box-shadow:0 4px 16px rgba(192,66,110,0.15);z-index:200;max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <!-- Tipe identitas + nomor -->
+        <div class="fr">
+          <label>Tipe Identitas</label>
+          <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden;margin-bottom:8px">
+            <input type="radio" name="tipe-id" id="ti-bpjs" value="bpjs" style="display:none" checked>
+            <label for="ti-bpjs" class="radio-lbl">BPJS</label>
+            <input type="radio" name="tipe-id" id="ti-nik" value="nik" style="display:none">
+            <label for="ti-nik" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">NIK</label>
+          </div>
+          <input type="text" id="lp-noid" placeholder="Nomor BPJS...">
+        </div>
+        <div class="fr"><label>Nama Lengkap</label><input type="text" id="lp-nama" placeholder="Nama lengkap pasien" style="text-transform:uppercase"></div>
+        <div class="fr">
+          <label>Jenis Kelamin</label>
+          <select id="lp-jk">
+            <option value="">-- Pilih --</option>
+            <option value="L">Laki-laki</option>
+            <option value="P">Perempuan</option>
+          </select>
+        </div>
+        <div class="fr"><label>Tanggal Lahir</label><input type="date" id="lp-tgllahir" oninput="onTglLahirChange()"></div>
+        <div class="fr"><label>Umur (otomatis)</label><input type="text" id="lp-umur" readonly placeholder="Otomatis dari tgl lahir"></div>
+        <div class="fr"><label>Desa</label><input type="text" id="lp-desa" placeholder="Nama desa..." style="text-transform:uppercase"></div>
+        <div class="fr"><label>Tanggal Layanan</label><input type="date" id="lp-tgl"></div>
+      </div>
+
+      <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
+
+      <!-- Langkah 4: Pemeriksaan -->
+      <div class="card-title">🩺 Pemeriksaan Fisik</div>
+      <div class="g4">
+        <div class="fr"><label>BB (kg)</label><input type="number" id="pm-bb" placeholder="0" step="0.1"></div>
+        <div class="fr"><label>TB (cm)</label><input type="number" id="pm-tb" placeholder="0"></div>
+        <div class="fr"><label>LP (cm)</label><input type="number" id="pm-lp" placeholder="0"></div>
+        <div class="fr"><label>TD (mmHg)</label><input type="text" id="pm-td" placeholder="120/80"></div>
+        <div class="fr"><label>Nadi (/mnt)</label><input type="number" id="pm-n" placeholder="0"></div>
+        <div class="fr"><label>Suhu (°C)</label><input type="number" id="pm-s" placeholder="0" step="0.1"></div>
+        <div class="fr"><label>Pernapasan (/mnt)</label><input type="number" id="pm-p" placeholder="0"></div>
+        <div class="fr"><label>CHOL (mg/dL)</label><input type="number" id="pm-chol" placeholder="0"></div>
+        <div class="fr"><label>AU (mg/dL)</label><input type="number" id="pm-au" placeholder="0"></div>
+        <div class="fr"><label>GDA (mg/dL)</label><input type="number" id="pm-gda" placeholder="0"></div>
+      </div>
+
+      <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
+
+      <!-- Klinis -->
+      <div class="card-title">📋 Klinis</div>
+      <div class="g2">
+        <div class="fr">
+          <label>Diagnosa / Keluhan</label>
+          <input type="text" id="lp-diagnosa" placeholder="Contoh: Hipertensi, Demam...">
+          <div id="diagnosa-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px"></div>
+        </div>
+        <div class="fr"><label>Tindakan</label><input type="text" id="lp-tindakan" placeholder="Contoh: Cek tensi, perawatan luka..."></div>
+      </div>
+
+      <!-- Obat -->
+      <div class="fr">
+        <label>Obat</label>
+        <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden;max-width:420px">
+          <input type="radio" name="jns-obat" id="jo-desa" value="desa" style="display:none" checked>
+          <label for="jo-desa" class="radio-lbl">💊 Obat Desa</label>
+          <input type="radio" name="jns-obat" id="jo-pusk" value="puskesmas" style="display:none">
+          <label for="jo-pusk" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">🏥 Obat Puskesmas</label>
+          <input type="radio" name="jns-obat" id="jo-kosong" value="kosong" style="display:none">
+          <label for="jo-kosong" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">🚫 Tidak Ada</label>
+        </div>
+      </div>
+
+      <!-- Obat Desa -->
+      <div id="wrap-obat-desa">
+        <div id="pilih-obat-desa"></div>
+      </div>
+
+      <!-- Obat Puskesmas -->
+      <div id="wrap-obat-pusk" style="display:none">
+        <div class="fr">
+          <label>Tulis Obat dari Puskesmas</label>
+          <textarea id="obat-pusk-input" rows="3" placeholder="Contoh: Amlodipin 5mg 1x1, Metformin 500mg 2x1..."></textarea>
+        </div>
+      </div>
+
+      <div class="fr"><label>Catatan</label><input type="text" id="lp-catatan" placeholder="Catatan tambahan..."></div>
+
+      <div class="fe" style="margin-top:8px">
+        <button class="btn" onclick="resetFormLayanan()">Reset</button>
+        <button class="btn btn-p" onclick="simpanLayanan()">Simpan Layanan ✓</button>
+      </div>
     </div>
+
+    <!-- RIWAYAT -->
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">Riwayat Layanan Pasien</div>
+        <div class="fg">
+          <input class="search-input" type="text" placeholder="🔍 Cari nama..."
+            oninput="renderLayanan(this.value)" style="width:180px">
+          <button class="btn btn-p btn-sm" onclick="dlLayanan()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="layanan-wrap"></div>
+    </div>
+
   </div>
 
   <div class="page" id="page-rjtp">
@@ -742,7 +950,8 @@ function go(name) {
   // Render halaman yang dibuka
   if (name === 'masuk') { renderWarnMasuk(); renderMasukHariIni(); }
   if (name === 'stok')  { renderStok(); }
-  if (name === 'buang') { renderBuangSel(); renderBuangRiwayat(); }
+  if (name === 'buang')   { renderBuangSel(); renderBuangRiwayat(); }
+  if (name === 'layanan') { initFormLayanan(); renderLayanan(); }
 }
 
 // ===================== LOGIN =====================
@@ -1222,7 +1431,402 @@ function dlBuang() {
   XLSX.writeFile(wb, 'BUANG_OBAT_' + today().replace(/-/g, '') + '.xlsx');
 }
 
+// ===================== LAYANAN PASIEN =====================
+const DIAGNOSA_TAGS = ['Demam','Flu','Batuk','Diare','Hipertensi','Diabetes',
+                       'ISPA','Pusing','Mual','Maag','Luka','Alergi'];
+let selLayanan  = '';
+let selObatDesa = {}; // { namaObat: { namaObat, qty } }
+
+function initFormLayanan() {
+  // Set tanggal hari ini
+  document.getElementById('lp-tgl').value = today();
+
+  // Reset radio ke default
+  document.getElementById('jk-baru').checked  = true;
+  document.getElementById('ti-bpjs').checked  = true;
+  document.getElementById('jo-desa').checked  = true;
+
+  // Update label noid
+  document.getElementById('lp-noid').placeholder = 'Nomor BPJS...';
+
+  // Sembunyikan search pasien lama
+  document.getElementById('wrap-search-pasien').style.display = 'none';
+
+  // Render obat desa & diagnosa tags
+  renderObatDesaPilihan();
+  renderDiagnosaTags();
+
+  // Pasang event listener radio
+  document.querySelectorAll('input[name="jns-kunjungan"]').forEach(r => {
+    r.onchange = onJenisKunjunganChange;
+  });
+  document.querySelectorAll('input[name="tipe-id"]').forEach(r => {
+    r.onchange = onTipeIdChange;
+  });
+  document.querySelectorAll('input[name="jns-obat"]').forEach(r => {
+    r.onchange = onJenisObatChange;
+  });
+}
+
+function onJenisKunjunganChange() {
+  const val = document.querySelector('input[name="jns-kunjungan"]:checked').value;
+  document.getElementById('wrap-search-pasien').style.display = val === 'lama' ? 'block' : 'none';
+  if (val === 'baru') clearDataPasienForm();
+}
+
+function onTipeIdChange() {
+  const val = document.querySelector('input[name="tipe-id"]:checked').value;
+  document.getElementById('lp-noid').placeholder = val === 'bpjs' ? 'Nomor BPJS...' : '16 digit NIK...';
+}
+
+function onTglLahirChange() {
+  const tl = document.getElementById('lp-tgllahir').value;
+  document.getElementById('lp-umur').value = hitungUmur(tl);
+}
+
+function onJenisObatChange() {
+  const val = document.querySelector('input[name="jns-obat"]:checked').value;
+  document.getElementById('wrap-obat-desa').style.display = val === 'desa'      ? 'block' : 'none';
+  document.getElementById('wrap-obat-pusk').style.display = val === 'puskesmas' ? 'block' : 'none';
+}
+
+function clearDataPasienForm() {
+  ['lp-noid','lp-nama','lp-jk','lp-tgllahir','lp-umur','lp-desa'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+function pilihLayanan(el, val) {
+  document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  selLayanan = val;
+}
+
+// ---- Search pasien ----
+function cariPasien(q) {
+  const list = document.getElementById('autocomplete-list');
+  if (!q || q.length < 2) { list.style.display = 'none'; return; }
+
+  const hasil = pasienData
+    .filter(p => p.nama.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 8);
+
+  if (!hasil.length) { list.style.display = 'none'; return; }
+
+  list.innerHTML = hasil.map(p => {
+    const idInfo = p.bpjs ? 'BPJS: ' + p.bpjs : p.nik ? 'NIK: ' + p.nik : '';
+    const umurInfo = p.umur || hitungUmur(p.tglLahir) || '';
+    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(232,144,187,0.15)" '
+      + ' onmouseover="this.style.background=\'#FEF0F8\'" onmouseout="this.style.background=\'white\'"'
+      + ' onclick="pilihPasien(\'' + p.id + '\')">'
+      + '<b>' + p.nama + '</b>'
+      + (p.jk ? ' <span style="font-size:10px;background:#FEF0F8;color:#C0426E;border-radius:10px;padding:1px 7px">' + p.jk + '</span>' : '')
+      + '<div style="font-size:11px;color:#A07A8E">' + [idInfo, umurInfo, p.desa].filter(x=>x).join(' • ') + '</div>'
+      + '</div>';
+  }).join('');
+
+  list.style.display = 'block';
+}
+
+function pilihPasien(id) {
+  const p = pasienData.find(x => x.id === id);
+  if (!p) return;
+
+  // Set tipe id
+  if (p.bpjs) {
+    document.getElementById('ti-bpjs').checked = true;
+    document.getElementById('lp-noid').value = p.bpjs;
+    document.getElementById('lp-noid').placeholder = 'Nomor BPJS...';
+  } else if (p.nik) {
+    document.getElementById('ti-nik').checked = true;
+    document.getElementById('lp-noid').value = p.nik;
+    document.getElementById('lp-noid').placeholder = '16 digit NIK...';
+  }
+
+  document.getElementById('lp-nama').value    = p.nama;
+  document.getElementById('lp-jk').value      = p.jk || '';
+  document.getElementById('lp-tgllahir').value = p.tglLahir || '';
+  document.getElementById('lp-umur').value    = p.umur || hitungUmur(p.tglLahir) || '';
+  document.getElementById('lp-desa').value    = p.desa || '';
+  document.getElementById('search-pasien').value = p.nama;
+  document.getElementById('autocomplete-list').style.display = 'none';
+}
+
+// ---- Diagnosa tags ----
+function renderDiagnosaTags() {
+  const wrap = document.getElementById('diagnosa-tags');
+  if (!wrap) return;
+  wrap.innerHTML = DIAGNOSA_TAGS.map(t =>
+    '<button class="diagnosa-tag" data-val="' + t + '" onclick="togDiagnosaBtn(this)">' + t + '</button>'
+  ).join('');
+}
+
+function togDiagnosaBtn(el) {
+  const val = el.dataset.val;
+  const inp = document.getElementById('lp-diagnosa');
+  const cur = inp.value.split(',').map(x => x.trim()).filter(x => x);
+  const idx = cur.indexOf(val);
+  if (idx >= 0) { cur.splice(idx, 1); el.classList.remove('active'); }
+  else          { cur.push(val);       el.classList.add('active'); }
+  inp.value = cur.join(', ');
+}
+
+// ---- Obat Desa ----
+function renderObatDesaPilihan() {
+  const wrap = document.getElementById('pilih-obat-desa');
+  if (!wrap) return;
+  selObatDesa = {};
+
+  const names = allNamaObat().filter(n => stokByName(n) > 0);
+  if (!names.length) {
+    wrap.innerHTML = '<div class="empty" style="padding:12px"><div class="empty-icon">📭</div><p>Stok obat kosong.</p></div>';
+    return;
+  }
+
+  wrap.innerHTML = names.map(n => {
+    const tot = stokByName(n);
+    const eid = 'obat_' + n.replace(/[^a-z0-9]/gi, '_');
+    return '<div class="obat-item">'
+      + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-max="' + tot + '" onchange="togObatDesa(this)">'
+      + '<label for="chk_' + eid + '">' + n + '<br><span class="stok-info">Stok tersedia: ' + tot + '</span></label>'
+      + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + tot + '" value="1" placeholder="Qty">'
+      + '</div>';
+  }).join('');
+}
+
+function togObatDesa(el) {
+  const eid  = el.dataset.eid;
+  const nama = el.dataset.nama;
+  const qty  = document.getElementById('qty_' + eid);
+  if (el.checked) {
+    qty.style.display = 'block';
+    selObatDesa[nama] = { namaObat: nama, qty: parseInt(qty.value) || 1 };
+    qty.oninput = () => {
+      if (selObatDesa[nama]) selObatDesa[nama].qty = parseInt(qty.value) || 1;
+    };
+  } else {
+    qty.style.display = 'none';
+    delete selObatDesa[nama];
+  }
+}
+
+// ---- Reset form ----
+function resetFormLayanan() {
+  document.getElementById('jk-baru').checked  = true;
+  document.getElementById('ti-bpjs').checked  = true;
+  document.getElementById('jo-desa').checked  = true;
+  onJenisKunjunganChange();
+  onTipeIdChange();
+  onJenisObatChange();
+
+  document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
+  selLayanan = '';
+
+  const ids = ['lp-noid','lp-nama','lp-jk','lp-tgllahir','lp-umur','lp-desa',
+               'pm-bb','pm-tb','pm-lp','pm-td','pm-n','pm-s','pm-p',
+               'pm-chol','pm-au','pm-gda','lp-diagnosa','lp-tindakan',
+               'obat-pusk-input','lp-catatan','search-pasien'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('lp-tgl').value = today();
+
+  selObatDesa = {};
+  renderObatDesaPilihan();
+  renderDiagnosaTags();
+}
+
+// ---- Simpan Layanan ----
+async function simpanLayanan() {
+  const jnsKunjungan = document.querySelector('input[name="jns-kunjungan"]:checked').value;
+  const tipeId       = document.querySelector('input[name="tipe-id"]:checked').value;
+  const jenisObat    = document.querySelector('input[name="jns-obat"]:checked').value;
+  const noid         = document.getElementById('lp-noid').value.trim();
+  const nama         = document.getElementById('lp-nama').value.trim().toUpperCase();
+  const jk           = document.getElementById('lp-jk').value;
+  const tglLahir     = document.getElementById('lp-tgllahir').value;
+  const umur         = document.getElementById('lp-umur').value;
+  const desa         = document.getElementById('lp-desa').value.trim().toUpperCase();
+  const tgl          = document.getElementById('lp-tgl').value;
+  const diagnosa     = document.getElementById('lp-diagnosa').value.trim().toUpperCase();
+  const tindakan     = document.getElementById('lp-tindakan').value.trim();
+  const catatan      = document.getElementById('lp-catatan').value.trim();
+  const obatPusk     = document.getElementById('obat-pusk-input').value.trim();
+
+  // Validasi
+  if (!selLayanan) { showAlert('al-layanan', 'Pilih jenis layanan terlebih dahulu (Langkah 2).', 'e'); return; }
+  if (!nama)       { showAlert('al-layanan', 'Nama pasien wajib diisi.', 'e'); return; }
+  if (!tgl)        { showAlert('al-layanan', 'Tanggal layanan wajib diisi.', 'e'); return; }
+
+  // Proses obat desa
+  let obatDetail = [];
+  if (jenisObat === 'desa') {
+    const olist = Object.values(selObatDesa).filter(x => x && x.qty > 0);
+    // Cek stok cukup
+    for (const x of olist) {
+      if (stokByName(x.namaObat) < x.qty) {
+        showAlert('al-layanan', 'Stok "' + x.namaObat + '" tidak cukup (sisa: ' + stokByName(x.namaObat) + ').', 'e');
+        return;
+      }
+    }
+    // Kurangi stok FIFO (dari batch terlama)
+    for (const x of olist) {
+      let sisa = x.qty;
+      const bs = batches
+        .filter(b => b.namaObat === x.namaObat && b.sisaStok > 0)
+        .sort((a, b) => new Date(a.tglMasuk) - new Date(b.tglMasuk));
+      for (const b of bs) {
+        if (sisa <= 0) break;
+        const ambil = Math.min(sisa, b.sisaStok);
+        b.sisaStok -= ambil;
+        sisa -= ambil;
+        obatDetail.push({ batchId: b.id, namaObat: x.namaObat, qty: ambil, tglExpired: b.tglExpired });
+      }
+    }
+    if (obatDetail.length > 0) await sv('batches', batches);
+  }
+
+  // Simpan profil pasien baru jika belum ada
+  const existing = pasienData.find(p => p.nama === nama);
+  if (!existing) {
+    const newPasien = { id: genId(), nama, jk, tglLahir, umur, desa };
+    if (tipeId === 'bpjs') newPasien.bpjs = noid;
+    else                   newPasien.nik  = noid;
+    pasienData.push(newPasien);
+    await sv('pasien', pasienData);
+  }
+
+  // Simpan data layanan
+  const rec = {
+    id: genId(), tgl, namaPasien: nama, jk, tglLahir, umur, desa,
+    jenisKunjungan: jnsKunjungan,
+    jenisLayanan  : selLayanan,
+    pemeriksaan: {
+      bb: document.getElementById('pm-bb').value,
+      tb: document.getElementById('pm-tb').value,
+      lp: document.getElementById('pm-lp').value,
+      td: document.getElementById('pm-td').value,
+      n : document.getElementById('pm-n').value,
+      s : document.getElementById('pm-s').value,
+      p : document.getElementById('pm-p').value,
+      chol: document.getElementById('pm-chol').value,
+      au  : document.getElementById('pm-au').value,
+      gda : document.getElementById('pm-gda').value,
+    },
+    diagnosa, tindakan, jenisObat,
+    obat        : jenisObat === 'desa'      ? obatDetail : [],
+    obatPuskesmas: jenisObat === 'puskesmas' ? obatPusk   : '',
+    catatan
+  };
+  if (tipeId === 'bpjs') rec.bpjs = noid;
+  else                   rec.nik  = noid;
+
+  layananData.unshift(rec);
+  await sv('layanan', layananData);
+
+  showAlert('al-layanan', '✓ Layanan untuk ' + nama + ' berhasil disimpan!', 's');
+  resetFormLayanan();
+  renderLayanan();
+}
+
+// ---- Render riwayat layanan ----
+function renderLayanan(filter) {
+  filter = (filter || '').toLowerCase();
+  const wrap = document.getElementById('layanan-wrap');
+  if (!wrap) return;
+
+  const data = layananData
+    .filter(r => !filter || r.namaPasien.toLowerCase().includes(filter))
+    .sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🏥</div><p>Belum ada data layanan pasien.</p></div>';
+    return;
+  }
+
+  const jlbl = { 'kunjungan-rumah': '🏠 Kunjungan Rumah', 'posyandu': '👶 Posyandu', 'kantor-desa': '🏛 Kantor Desa' };
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama Pasien</th><th>Layanan</th>'
+    + '<th>Diagnosa</th><th>Tindakan</th><th>Obat</th><th>Aksi</th>'
+    + '</tr></thead><tbody>';
+
+  data.forEach((r, i) => {
+    let obatStr = '-';
+    if (r.jenisObat === 'desa' && r.obat && r.obat.length > 0) {
+      obatStr = r.obat.map(o =>
+        '<span class="badge bg-pink" style="font-size:10px;margin:1px">' + o.namaObat + ' ×' + o.qty + '</span>'
+      ).join(' ');
+    } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
+      const txt = r.obatPuskesmas.length > 35 ? r.obatPuskesmas.substring(0, 35) + '...' : r.obatPuskesmas;
+      obatStr = '<span class="badge bg-blue" style="font-size:10px">🏥 ' + txt + '</span>';
+    }
+
+    h += '<tr>'
+      + '<td style="color:#A07A8E">' + (i + 1) + '</td>'
+      + '<td>' + formatTgl(r.tgl) + '</td>'
+      + '<td><b>' + r.namaPasien + '</b><br><span style="font-size:11px;color:#A07A8E">' + (r.desa || '') + '</span></td>'
+      + '<td style="font-size:12px">' + (jlbl[r.jenisLayanan] || r.jenisLayanan || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.diagnosa || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.tindakan || '-') + '</td>'
+      + '<td>' + obatStr + '</td>'
+      + '<td><button class="btn btn-xs btn-d" data-id="' + r.id + '" onclick="konfirmHapusLayanan(this.dataset.id)">Hapus</button></td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+function konfirmHapusLayanan(id) {
+  const btn = document.querySelector('#layanan-wrap button[data-id="' + id + '"]');
+  if (!btn) return;
+  const row = btn.closest('tr');
+  const r   = layananData.find(x => x.id === id);
+  if (!r) return;
+
+  row.innerHTML = '<td colspan="8" style="padding:10px;background:#FDECEC">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<span style="font-size:13px">Hapus data layanan <b>' + r.namaPasien + '</b>?</span>'
+    + '<button class="btn btn-d btn-sm" data-id="' + r.id + '" onclick="hapusLayanan(this.dataset.id)">Ya, Hapus</button>'
+    + '<button class="btn btn-sm" onclick="renderLayanan()">Batal</button>'
+    + '</div></td>';
+}
+
+async function hapusLayanan(id) {
+  layananData = layananData.filter(x => x.id !== id);
+  await sv('layanan', layananData);
+  renderLayanan();
+}
+
+function dlLayanan() {
+  if (!layananData.length) { alert('Belum ada data layanan.'); return; }
+  const rows = [['No','Tanggal','Nama','Desa','Jenis Kunjungan','Jenis Layanan',
+                 'BB','TB','LP','TD','N','S','P','CHOL','AU','GDA',
+                 'Diagnosa','Tindakan','Jenis Obat','Obat','Catatan']];
+  layananData.forEach((r, i) => {
+    const pm = r.pemeriksaan || {};
+    const obatStr = r.jenisObat === 'desa'
+      ? (r.obat || []).map(o => o.namaObat + '(' + o.qty + ')').join(';')
+      : r.obatPuskesmas || '-';
+    rows.push([i+1, r.tgl, r.namaPasien, r.desa||'-', r.jenisKunjungan, r.jenisLayanan,
+               pm.bb||'-', pm.tb||'-', pm.lp||'-', pm.td||'-', pm.n||'-',
+               pm.s||'-', pm.p||'-', pm.chol||'-', pm.au||'-', pm.gda||'-',
+               r.diagnosa||'-', r.tindakan||'-', r.jenisObat, obatStr, r.catatan||'-']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Layanan Pasien');
+  XLSX.writeFile(wb, 'LAYANAN_PASIEN_' + today().replace(/-/g,'') + '.xlsx');
+}
+
 // ===================== BOOT =====================
+// Tutup autocomplete saat klik di luar
+document.addEventListener('click', function(e) {
+  const list = document.getElementById('autocomplete-list');
+  if (list && !e.target.closest('#wrap-search-pasien')) {
+    list.style.display = 'none';
+  }
+});
+
 window.addEventListener('load', function () {
   document.getElementById('login-pass').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') cekLogin();
