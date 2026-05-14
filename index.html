@@ -739,9 +739,9 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
             <input type="radio" name="tipe-id" id="ti-nik" value="nik" style="display:none">
             <label for="ti-nik" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">NIK</label>
           </div>
-          <input type="text" id="lp-noid" placeholder="Nomor BPJS...">
+          <input type="text" id="lp-noid" placeholder="Nomor BPJS..." oninput="this.value=this.value.toUpperCase()">
         </div>
-        <div class="fr"><label>Nama Lengkap</label><input type="text" id="lp-nama" placeholder="Nama lengkap pasien" style="text-transform:uppercase"></div>
+        <div class="fr"><label>Nama Lengkap</label><input type="text" id="lp-nama" placeholder="Nama lengkap pasien" oninput="this.value=this.value.toUpperCase()"></div>
         <div class="fr">
           <label>Jenis Kelamin</label>
           <select id="lp-jk">
@@ -752,7 +752,26 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
         </div>
         <div class="fr"><label>Tanggal Lahir</label><input type="date" id="lp-tgllahir" oninput="onTglLahirChange()"></div>
         <div class="fr"><label>Umur (otomatis)</label><input type="text" id="lp-umur" readonly placeholder="Otomatis dari tgl lahir"></div>
-        <div class="fr"><label>Desa</label><input type="text" id="lp-desa" placeholder="Nama desa..." style="text-transform:uppercase"></div>
+        <div class="fr">
+          <label>Desa / Kelurahan</label>
+          <select id="lp-desa">
+            <option value="">-- Pilih --</option>
+            <optgroup label="Kelurahan">
+              <option value="HORODOPI">HORODOPI</option>
+              <option value="INEBENGGI">INEBENGGI</option>
+              <option value="WOITOMBO">WOITOMBO</option>
+            </optgroup>
+            <optgroup label="Desa">
+              <option value="WATUPUTE">WATUPUTE</option>
+              <option value="LAPANGISI">LAPANGISI</option>
+              <option value="SABI-SABILA">SABI-SABILA</option>
+              <option value="LAMBOTUA">LAMBOTUA</option>
+              <option value="PUUOSU">PUUOSU</option>
+              <option value="NELOMBU">NELOMBU</option>
+              <option value="ULU MOWEWE">ULU MOWEWE</option>
+            </optgroup>
+          </select>
+        </div>
         <div class="fr"><label>Tanggal Layanan</label><input type="date" id="lp-tgl"></div>
       </div>
 
@@ -780,10 +799,10 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
       <div class="g2">
         <div class="fr">
           <label>Diagnosa / Keluhan</label>
-          <input type="text" id="lp-diagnosa" placeholder="Contoh: Hipertensi, Demam...">
+          <input type="text" id="lp-diagnosa" placeholder="Contoh: Hipertensi, Demam..." oninput="this.value=this.value.toUpperCase()">
           <div id="diagnosa-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px"></div>
         </div>
-        <div class="fr"><label>Tindakan</label><input type="text" id="lp-tindakan" placeholder="Contoh: Cek tensi, perawatan luka..."></div>
+        <div class="fr"><label>Tindakan</label><input type="text" id="lp-tindakan" placeholder="Contoh: Cek tensi, perawatan luka..." oninput="this.value=this.value.toUpperCase()"></div>
       </div>
 
       <!-- Obat -->
@@ -812,7 +831,7 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
         </div>
       </div>
 
-      <div class="fr"><label>Catatan</label><input type="text" id="lp-catatan" placeholder="Catatan tambahan..."></div>
+      <div class="fr"><label>Catatan</label><input type="text" id="lp-catatan" placeholder="Catatan tambahan..." oninput="this.value=this.value.toUpperCase()"></div>
 
       <div class="fe" style="margin-top:8px">
         <button class="btn" onclick="resetFormLayanan()">Reset</button>
@@ -1440,6 +1459,8 @@ let selObatDesa = {}; // { namaObat: { namaObat, qty } }
 function initFormLayanan() {
   // Set tanggal hari ini
   document.getElementById('lp-tgl').value = today();
+  document.getElementById('lp-jk').value   = '';
+  document.getElementById('lp-desa').value  = '';
 
   // Reset radio ke default
   document.getElementById('jk-baru').checked  = true;
@@ -1491,10 +1512,12 @@ function onJenisObatChange() {
 }
 
 function clearDataPasienForm() {
-  ['lp-noid','lp-nama','lp-jk','lp-tgllahir','lp-umur','lp-desa'].forEach(id => {
+  ['lp-noid','lp-nama','lp-tgllahir','lp-umur'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  document.getElementById('lp-jk').value   = '';
+  document.getElementById('lp-desa').value  = '';
 }
 
 function pilihLayanan(el, val) {
@@ -1587,9 +1610,35 @@ function renderObatDesaPilihan() {
   wrap.innerHTML = names.map(n => {
     const tot = stokByName(n);
     const eid = 'obat_' + n.replace(/[^a-z0-9]/gi, '_');
+
+    // Tampilkan info per batch (jika lebih dari 1 batch atau ada expired)
+    const bs = batches.filter(b => b.namaObat === n && b.sisaStok > 0)
+      .sort((a, b) => new Date(a.tglMasuk) - new Date(b.tglMasuk));
+
+    let expInfo = '';
+    if (bs.length === 1 && bs[0].tglExpired) {
+      // 1 batch — tampilkan expired langsung
+      const d = daysToExp(bs[0].tglExpired);
+      const warna = d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
+      const label = d < 0 ? 'EXPIRED' : 'exp: ' + formatTgl(bs[0].tglExpired) + ' (' + d + ' hr)';
+      expInfo = ' <span style="font-size:10px;color:' + warna + ';font-weight:600">[' + label + ']</span>';
+    } else if (bs.length > 1) {
+      // Banyak batch — tampilkan per batch
+      expInfo = '<div style="margin-top:4px;padding-left:2px">' + bs.map((b, i) => {
+        const d = daysToExp(b.tglExpired);
+        const warna = !b.tglExpired ? '#A07A8E' : d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
+        const expLabel = !b.tglExpired ? 'tdk ada exp' : d < 0 ? 'EXPIRED' : 'exp: ' + formatTgl(b.tglExpired) + ' (' + d + ' hr)';
+        return '<span style="font-size:10px;color:' + warna + ';margin-right:8px">Batch ' + (i+1) + ': sisa ' + b.sisaStok + ' [' + expLabel + ']</span>';
+      }).join('<br>') + '</div>';
+    }
+
     return '<div class="obat-item">'
       + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-max="' + tot + '" onchange="togObatDesa(this)">'
-      + '<label for="chk_' + eid + '">' + n + '<br><span class="stok-info">Stok tersedia: ' + tot + '</span></label>'
+      + '<label for="chk_' + eid + '">'
+      + '<span style="font-weight:500">' + n + '</span>' + (bs.length === 1 ? expInfo : '')
+      + '<br><span class="stok-info">Total tersedia: ' + tot + '</span>'
+      + (bs.length > 1 ? expInfo : '')
+      + '</label>'
       + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + tot + '" value="1" placeholder="Qty">'
       + '</div>';
   }).join('');
@@ -1623,7 +1672,7 @@ function resetFormLayanan() {
   document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
   selLayanan = '';
 
-  const ids = ['lp-noid','lp-nama','lp-jk','lp-tgllahir','lp-umur','lp-desa',
+  const ids = ['lp-noid','lp-nama','lp-tgllahir','lp-umur',
                'pm-bb','pm-tb','pm-lp','pm-td','pm-n','pm-s','pm-p',
                'pm-chol','pm-au','pm-gda','lp-diagnosa','lp-tindakan',
                'obat-pusk-input','lp-catatan','search-pasien'];
