@@ -1367,20 +1367,94 @@ function dlStok() {
   if (!batches.length) { alert('Stok masih kosong.'); return; }
   if (typeof XLSX === 'undefined') { alert('Library XLSX belum dimuat.'); return; }
 
-  const rows = [['No','Nama Obat','Sisa Stok','Stok Awal','Tgl Masuk','Tgl Expired','Status']];
+  const rows = [];
+  let no = 1;
+
+  // Helper tambah section header
+  const addHeader = (title, cols) => {
+    rows.push([]);
+    rows.push([title]);
+    rows.push(cols);
+  };
+
+  // Kelompokkan seperti di web
+  const grouped = {};
   batches
-    .sort((a, b) => a.namaObat.localeCompare(b.namaObat))
-    .forEach((b, i) => {
-      const d  = daysToExp(b.tglExpired);
-      const st = !b.tglExpired ? 'Baik' : d < 0 ? 'Expired' : d <= 30 ? 'Menjelang Expired' : 'Baik';
-      rows.push([i + 1, b.namaObat, b.sisaStok, b.jumlah, b.tglMasuk || '-', b.tglExpired || '-', st]);
+    .filter(b => b.sisaStok > 0)
+    .forEach(b => {
+      if (!grouped[b.namaObat]) grouped[b.namaObat] = { nama: b.namaObat, batches: [] };
+      grouped[b.namaObat].batches.push(b);
     });
+  const groups = Object.values(grouped).sort((a, b) => a.nama.localeCompare(b.nama));
+
+  const katGrup = g => {
+    const ds = g.batches.map(b => daysToExp(b.tglExpired));
+    if (ds.some(d => d < 0))   return 'exp';
+    if (ds.some(d => d <= 30)) return 'warn';
+    return 'good';
+  };
+
+  const gExp      = groups.filter(g => katGrup(g) === 'exp');
+  const gWarn     = groups.filter(g => katGrup(g) === 'warn');
+  const gBaik     = groups.filter(g => katGrup(g) === 'good' && g.batches.some(b => b.tglExpired));
+  const gTanpaExp = groups.filter(g => katGrup(g) === 'good' && g.batches.every(b => !b.tglExpired));
+
+  // Fungsi tambah baris per batch (untuk section dengan expired)
+  const addBatchRows = (list) => {
+    list.forEach(g => {
+      const totalSisa = g.batches.reduce((a, b) => a + b.sisaStok, 0);
+      g.batches.forEach((b, bi) => {
+        const d  = daysToExp(b.tglExpired);
+        const st = d < 0 ? 'Expired' : d <= 30 ? 'Menjelang Expired (' + d + ' hr)' : 'Baik';
+        rows.push([
+          no++,
+          g.nama,
+          totalSisa,
+          bi + 1,
+          b.jumlah,
+          b.tglMasuk || '-',
+          b.tglExpired || '-',
+          b.sisaStok,
+          st
+        ]);
+      });
+    });
+  };
+
+  // Section Sudah Expired
+  if (gExp.length) {
+    addHeader('SUDAH EXPIRED', ['No','Nama Obat','Total Sisa','Batch','Stok Awal','Tgl Masuk','Tgl Expired','Sisa','Status']);
+    addBatchRows(gExp);
+    no = 1;
+  }
+
+  // Section Menjelang Expired
+  if (gWarn.length) {
+    addHeader('MENJELANG EXPIRED (≤30 HARI)', ['No','Nama Obat','Total Sisa','Batch','Stok Awal','Tgl Masuk','Tgl Expired','Sisa','Status']);
+    addBatchRows(gWarn);
+    no = 1;
+  }
+
+  // Section Stok Baik
+  if (gBaik.length) {
+    addHeader('STOK BAIK', ['No','Nama Obat','Total Sisa','Batch','Stok Awal','Tgl Masuk','Tgl Expired','Sisa','Status']);
+    addBatchRows(gBaik);
+    no = 1;
+  }
+
+  // Section Tanpa Expired — 1 baris per nama
+  if (gTanpaExp.length) {
+    addHeader('TANPA EXPIRED', ['No','Nama Obat','Total Stok']);
+    gTanpaExp.forEach(g => {
+      const totalSisa = g.batches.reduce((a, b) => a + b.sisaStok, 0);
+      rows.push([no++, g.nama, totalSisa]);
+    });
+  }
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Stok Obat');
-  const tgl = today().replace(/-/g, '');
-  XLSX.writeFile(wb, 'STOK_OBAT_' + tgl + '.xlsx');
+  XLSX.writeFile(wb, 'STOK_OBAT_' + today().replace(/-/g, '') + '.xlsx');
 }
 
 // ===================== BUANG / EXPIRED =====================
