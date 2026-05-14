@@ -1608,55 +1608,73 @@ function renderObatDesaPilihan() {
   }
 
   wrap.innerHTML = names.map(n => {
-    const tot = stokByName(n);
-    const eid = 'obat_' + n.replace(/[^a-z0-9]/gi, '_');
-
-    // Tampilkan info per batch (jika lebih dari 1 batch atau ada expired)
     const bs = batches.filter(b => b.namaObat === n && b.sisaStok > 0)
       .sort((a, b) => new Date(a.tglMasuk) - new Date(b.tglMasuk));
 
-    let expInfo = '';
-    if (bs.length === 1 && bs[0].tglExpired) {
-      // 1 batch — tampilkan expired langsung
-      const d = daysToExp(bs[0].tglExpired);
-      const warna = d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
-      const label = d < 0 ? 'EXPIRED' : 'exp: ' + formatTgl(bs[0].tglExpired) + ' (' + d + ' hr)';
-      expInfo = ' <span style="font-size:10px;color:' + warna + ';font-weight:600">[' + label + ']</span>';
-    } else if (bs.length > 1) {
-      // Banyak batch — tampilkan per batch
-      expInfo = '<div style="margin-top:4px;padding-left:2px">' + bs.map((b, i) => {
-        const d = daysToExp(b.tglExpired);
-        const warna = !b.tglExpired ? '#A07A8E' : d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
-        const expLabel = !b.tglExpired ? 'tdk ada exp' : d < 0 ? 'EXPIRED' : 'exp: ' + formatTgl(b.tglExpired) + ' (' + d + ' hr)';
-        return '<span style="font-size:10px;color:' + warna + ';margin-right:8px">Batch ' + (i+1) + ': sisa ' + b.sisaStok + ' [' + expLabel + ']</span>';
-      }).join('<br>') + '</div>';
-    }
+    if (bs.length === 1) {
+      // Hanya 1 batch — tampilkan sederhana
+      const b   = bs[0];
+      const eid = 'obat_' + b.id.replace(/[^a-z0-9]/gi, '_');
+      const d   = daysToExp(b.tglExpired);
+      const warna = !b.tglExpired ? '#A07A8E' : d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
+      const expLabel = !b.tglExpired ? '' : d < 0 ? ' [EXPIRED]' : ' [exp: ' + formatTgl(b.tglExpired) + ', ' + d + ' hr]';
 
-    return '<div class="obat-item">'
-      + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-max="' + tot + '" onchange="togObatDesa(this)">'
-      + '<label for="chk_' + eid + '">'
-      + '<span style="font-weight:500">' + n + '</span>' + (bs.length === 1 ? expInfo : '')
-      + '<br><span class="stok-info">Total tersedia: ' + tot + '</span>'
-      + (bs.length > 1 ? expInfo : '')
-      + '</label>'
-      + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + tot + '" value="1" placeholder="Qty">'
-      + '</div>';
+      return '<div class="obat-item">'
+        + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-batchid="' + b.id + '" data-max="' + b.sisaStok + '" onchange="togObatDesa(this)">'
+        + '<label for="chk_' + eid + '">'
+        + '<span style="font-weight:500">' + n + '</span>'
+        + '<span style="font-size:10px;color:' + warna + ';font-weight:600">' + expLabel + '</span>'
+        + '<br><span class="stok-info">Sisa: ' + b.sisaStok + '</span>'
+        + '</label>'
+        + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + b.sisaStok + '" value="1" placeholder="Qty">'
+        + '</div>';
+
+    } else {
+      // Banyak batch — tampilkan per batch agar user bisa pilih
+      const tot = bs.reduce((a, b) => a + b.sisaStok, 0);
+      return '<div style="background:#FFF6FA;border:1px solid rgba(232,144,187,0.22);border-radius:8px;padding:10px 12px;margin-bottom:4px">'
+        + '<div style="font-size:13px;font-weight:600;margin-bottom:6px">💊 ' + n + ' <span style="font-size:11px;color:#A07A8E;font-weight:400">(Total sisa: ' + tot + ' — pilih batch)</span></div>'
+        + bs.map((b, i) => {
+            const eid = 'obat_' + b.id.replace(/[^a-z0-9]/gi, '_');
+            const d   = daysToExp(b.tglExpired);
+            const warna = !b.tglExpired ? '#A07A8E' : d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
+            const expLabel = !b.tglExpired ? 'Tanpa expired' : d < 0 ? 'EXPIRED' : 'Exp: ' + formatTgl(b.tglExpired) + ' (' + d + ' hr)';
+            return '<div class="obat-item" style="background:white;margin-bottom:3px">'
+              + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-batchid="' + b.id + '" data-max="' + b.sisaStok + '" onchange="togObatDesa(this)">'
+              + '<label for="chk_' + eid + '">'
+              + '<span style="font-size:12px">Batch ' + (i+1) + '</span>'
+              + ' <span style="font-size:11px;color:' + warna + ';font-weight:600">[' + expLabel + ']</span>'
+              + '<br><span class="stok-info">Sisa: ' + b.sisaStok + '</span>'
+              + '</label>'
+              + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + b.sisaStok + '" value="1" placeholder="Qty">'
+              + '</div>';
+          }).join('')
+        + '</div>';
+    }
   }).join('');
 }
 
 function togObatDesa(el) {
-  const eid  = el.dataset.eid;
-  const nama = el.dataset.nama;
-  const qty  = document.getElementById('qty_' + eid);
+  const eid     = el.dataset.eid;
+  const nama    = el.dataset.nama;
+  const batchId = el.dataset.batchid;
+  const maxStok = parseInt(el.dataset.max) || 0;
+  const qty     = document.getElementById('qty_' + eid);
+
   if (el.checked) {
     qty.style.display = 'block';
-    selObatDesa[nama] = { namaObat: nama, qty: parseInt(qty.value) || 1 };
+    // Key by batchId so same-name different-batch are tracked separately
+    selObatDesa[batchId] = { namaObat: nama, batchId: batchId, qty: parseInt(qty.value) || 1, maxStok: maxStok };
     qty.oninput = () => {
-      if (selObatDesa[nama]) selObatDesa[nama].qty = parseInt(qty.value) || 1;
+      if (selObatDesa[batchId]) {
+        const v = parseInt(qty.value) || 1;
+        selObatDesa[batchId].qty = Math.min(v, maxStok);
+        if (v > maxStok) qty.value = maxStok;
+      }
     };
   } else {
     qty.style.display = 'none';
-    delete selObatDesa[nama];
+    delete selObatDesa[batchId];
   }
 }
 
@@ -1710,25 +1728,21 @@ async function simpanLayanan() {
   let obatDetail = [];
   if (jenisObat === 'desa') {
     const olist = Object.values(selObatDesa).filter(x => x && x.qty > 0);
-    // Cek stok cukup
+    // Cek stok cukup per batch yang dipilih
     for (const x of olist) {
-      if (stokByName(x.namaObat) < x.qty) {
-        showAlert('al-layanan', 'Stok "' + x.namaObat + '" tidak cukup (sisa: ' + stokByName(x.namaObat) + ').', 'e');
+      const b = batches.find(bx => bx.id === x.batchId);
+      if (!b || b.sisaStok < x.qty) {
+        const sisa = b ? b.sisaStok : 0;
+        showAlert('al-layanan', 'Stok "' + x.namaObat + '" tidak cukup (sisa batch: ' + sisa + ').', 'e');
         return;
       }
     }
-    // Kurangi stok FIFO (dari batch terlama)
+    // Kurangi stok batch yang dipilih user
     for (const x of olist) {
-      let sisa = x.qty;
-      const bs = batches
-        .filter(b => b.namaObat === x.namaObat && b.sisaStok > 0)
-        .sort((a, b) => new Date(a.tglMasuk) - new Date(b.tglMasuk));
-      for (const b of bs) {
-        if (sisa <= 0) break;
-        const ambil = Math.min(sisa, b.sisaStok);
-        b.sisaStok -= ambil;
-        sisa -= ambil;
-        obatDetail.push({ batchId: b.id, namaObat: x.namaObat, qty: ambil, tglExpired: b.tglExpired });
+      const b = batches.find(bx => bx.id === x.batchId);
+      if (b) {
+        b.sisaStok -= x.qty;
+        obatDetail.push({ batchId: b.id, namaObat: x.namaObat, qty: x.qty, tglExpired: b.tglExpired });
       }
     }
     if (obatDetail.length > 0) await sv('batches', batches);
