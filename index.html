@@ -2533,40 +2533,123 @@ async function simpanDataLama(idx) {
   renderRekap();
 }
 
+// State sementara untuk edit obat keluar
+let editObatTemp = []; // array of { batchId, namaObat, qty, tglExpired }
+
 function bukaEditObatKeluar(id) {
   const r = layananData.find(x => x.id === id);
   if (!r) return;
   editLayananId = id;
+  editLayananMode = 'obat';
 
-  // Buat popup sederhana inline di baris — pakai popup-layanan
+  // Salin obat saat ini ke state sementara
+  editObatTemp = r.jenisObat === 'desa'
+    ? (r.obat || []).map(o => ({ ...o }))
+    : [];
+
   document.getElementById('popup-lay-title').textContent =
     'Edit Obat — ' + r.namaPasien + ' (' + formatTgl(r.tgl) + ')';
 
-  let obatBody = '';
+  renderEditObatBody(r);
+  document.getElementById('popup-layanan').style.display = 'flex';
+}
 
-  if (r.jenisObat === 'desa' && r.obat && r.obat.length) {
-    // Obat desa: tampilkan list dengan qty yang bisa diedit
-    obatBody = '<div style="font-size:12px;color:#A07A8E;margin-bottom:10px">Obat dari stok desa — edit jumlah jika perlu:</div>';
-    r.obat.forEach((o, i) => {
-      obatBody += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 12px;background:#FFF6FA;border:1px solid rgba(232,144,187,0.22);border-radius:8px">'
-        + '<span style="flex:1;font-size:13px;font-weight:500">' + o.namaObat + '</span>'
-        + '<label style="font-size:12px;color:#A07A8E">Qty:</label>'
-        + '<input type="number" id="obat-qty-' + i + '" value="' + o.qty + '" min="1"'
-        + ' style="width:70px;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:6px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
-        + '</div>';
-    });
-  } else if (r.jenisObat === 'puskesmas') {
-    // Obat puskesmas: textarea
-    obatBody = '<div style="font-size:12px;color:#A07A8E;margin-bottom:10px">Obat dari Puskesmas — edit teks:</div>'
+function renderEditObatBody(r) {
+  const wrap = document.getElementById('popup-lay-body');
+  if (!wrap) return;
+
+  if (r.jenisObat === 'puskesmas') {
+    // Obat puskesmas: textarea saja
+    wrap.innerHTML = '<div style="font-size:12px;color:#A07A8E;margin-bottom:10px">Obat dari Puskesmas — edit teks:</div>'
       + '<textarea id="obat-pusk-edit" rows="4" style="width:100%;padding:8px 11px;border:1px solid rgba(232,144,187,0.38);border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;outline:none;resize:vertical">'
       + (r.obatPuskesmas || '') + '</textarea>';
-  } else {
-    obatBody = '<div style="color:#A07A8E;font-size:13px">Tidak ada obat di entri ini.</div>';
+    return;
   }
 
-  document.getElementById('popup-lay-body').innerHTML = obatBody;
-  editLayananMode = 'obat';
-  document.getElementById('popup-layanan').style.display = 'flex';
+  // Obat desa: list yang bisa diedit qty, hapus, dan tambah
+  let h = '<div style="font-size:12px;color:#A07A8E;margin-bottom:10px">Edit jumlah, hapus, atau tambah obat:</div>';
+
+  // List obat saat ini
+  if (editObatTemp.length) {
+    editObatTemp.forEach((o, i) => {
+      const d = daysToExp(o.tglExpired);
+      const expInfo = o.tglExpired
+        ? (d < 0 ? ' <span style="color:#A32D2D;font-size:10px">[EXPIRED]</span>'
+                 : ' <span style="color:#A07A8E;font-size:10px">[exp: ' + formatTgl(o.tglExpired) + ']</span>')
+        : '';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:8px 12px;background:#FFF6FA;border:1px solid rgba(232,144,187,0.22);border-radius:8px">'
+        + '<span style="flex:1;font-size:13px;font-weight:500">' + o.namaObat + expInfo + '</span>'
+        + '<label style="font-size:12px;color:#A07A8E;white-space:nowrap">Qty:</label>'
+        + '<input type="number" data-idx="' + i + '" value="' + o.qty + '" min="1"'
+        + ' oninput="editObatTemp[this.dataset.idx].qty=parseInt(this.value)||1"'
+        + ' style="width:65px;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:6px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
+        + '<button class="btn btn-xs btn-d" data-idx="' + i + '" onclick="hapusObatTemp(this.dataset.idx)">✕</button>'
+        + '</div>';
+    });
+  } else {
+    h += '<div style="color:#A07A8E;font-size:13px;padding:10px 0">Belum ada obat.</div>';
+  }
+
+  // Tambah obat dari stok
+  h += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(232,144,187,0.22)">'
+    + '<div style="font-size:12px;font-weight:600;color:#A07A8E;margin-bottom:8px">+ Tambah Obat dari Stok</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    + '<select id="tambah-obat-sel" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid rgba(232,144,187,0.38);border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
+    + '<option value="">-- Pilih obat --</option>';
+
+  // Opsi: per batch kalau ada expired, gabung kalau tanpa expired
+  const names = allNamaObat().filter(n => stokByName(n) > 0);
+  names.forEach(n => {
+    const bs = batches.filter(b => b.namaObat === n && b.sisaStok > 0);
+    const semuaTanpa = bs.every(b => !b.tglExpired);
+    if (semuaTanpa) {
+      const tot = bs.reduce((a,b) => a+b.sisaStok, 0);
+      const batchIds = bs.map(b => b.id).join(',');
+      h += '<option value="GABUNG|' + n + '|' + batchIds + '">' + n + ' (sisa: ' + tot + ')</option>';
+    } else {
+      bs.forEach((b, bi) => {
+        const d = daysToExp(b.tglExpired);
+        const expL = !b.tglExpired ? '' : d < 0 ? ' [EXPIRED]' : ' [exp: ' + formatTgl(b.tglExpired) + ']';
+        h += '<option value="BATCH|' + b.id + '|' + n + '|' + (b.tglExpired||'') + '">'
+          + n + ' Batch' + (bi+1) + expL + ' (sisa: ' + b.sisaStok + ')</option>';
+      });
+    }
+  });
+
+  h += '</select>'
+    + '<input type="number" id="tambah-obat-qty" value="1" min="1"'
+    + ' style="width:65px;padding:7px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
+    + '<button class="btn btn-sm btn-o" onclick="tambahObatTemp()">+ Tambah</button>'
+    + '</div></div>';
+
+  wrap.innerHTML = h;
+}
+
+function hapusObatTemp(idx) {
+  editObatTemp.splice(parseInt(idx), 1);
+  const r = layananData.find(x => x.id === editLayananId);
+  if (r) renderEditObatBody(r);
+}
+
+function tambahObatTemp() {
+  const sel = document.getElementById('tambah-obat-sel');
+  const qty = parseInt(document.getElementById('tambah-obat-qty').value) || 1;
+  if (!sel || !sel.value) { alert('Pilih obat terlebih dahulu.'); return; }
+
+  const parts = sel.value.split('|');
+  if (parts[0] === 'GABUNG') {
+    const nama     = parts[1];
+    const batchIds = parts[2];
+    editObatTemp.push({ batchIds, namaObat: nama, qty, tglExpired: '', gabung: true });
+  } else {
+    const batchId   = parts[1];
+    const nama      = parts[2];
+    const tglExpired = parts[3] || '';
+    editObatTemp.push({ batchId, namaObat: nama, qty, tglExpired, gabung: false });
+  }
+
+  const r = layananData.find(x => x.id === editLayananId);
+  if (r) renderEditObatBody(r);
 }
 
 async function simpanEditObatKeluar() {
@@ -2574,14 +2657,19 @@ async function simpanEditObatKeluar() {
   const r = layananData.find(x => x.id === editLayananId);
   if (!r) return;
 
-  if (r.jenisObat === 'desa' && r.obat && r.obat.length) {
-    r.obat.forEach((o, i) => {
-      const el = document.getElementById('obat-qty-' + i);
-      if (el) o.qty = parseInt(el.value) || o.qty;
-    });
-  } else if (r.jenisObat === 'puskesmas') {
+  if (r.jenisObat === 'puskesmas') {
     const el = document.getElementById('obat-pusk-edit');
     if (el) r.obatPuskesmas = el.value.toUpperCase();
+  } else {
+    // Simpan obat dari editObatTemp
+    r.obat = editObatTemp.map(o => ({
+      batchId   : o.batchId || (o.batchIds ? o.batchIds.split(',')[0] : ''),
+      namaObat  : o.namaObat,
+      qty       : o.qty,
+      tglExpired: o.tglExpired || ''
+    }));
+    // Update jenisObat jika sebelumnya kosong
+    if (r.obat.length > 0) r.jenisObat = 'desa';
   }
 
   await sv('layanan', layananData);
