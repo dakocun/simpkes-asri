@@ -628,17 +628,34 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
   </div>
 
   <div class="page" id="page-rekap">
+
+    <!-- Data Baru dari Layanan Pasien -->
     <div class="card">
       <div class="fb" style="margin-bottom:14px">
         <div class="card-title" style="margin:0">📋 Rekap Obat Keluar</div>
         <div class="fg">
-          <input class="search-input" type="text" placeholder="🔍 Cari nama pasien..."
-            oninput="renderRekap(this.value)" style="width:200px">
+          <input class="search-input" type="text" id="search-rekap" placeholder="🔍 Cari nama pasien..."
+            oninput="renderRekap(this.value)" style="width:180px">
           <button class="btn btn-p btn-sm" onclick="dlRekap()">⬇ Unduh XLSX</button>
         </div>
       </div>
       <div id="rekap-wrap"></div>
     </div>
+
+    <div id="al-rekap" class="alert"></div>
+
+    <!-- Data Lama dari Sistem Lama -->
+    <div class="card">
+      <div class="card-title">🗂 Data Lama — Rekap Keluar Sistem Sebelumnya</div>
+      <div class="fg" style="margin-bottom:14px">
+        <label style="margin:0;font-size:12px;color:#A07A8E">Filter Bulan:</label>
+        <select id="lama-bln" onchange="renderRekapLama()" style="width:140px"></select>
+        <select id="lama-thn" onchange="renderRekapLama()" style="width:100px"></select>
+        <button class="btn btn-sm btn-o btn-sm" onclick="renderRekapLama(true)">Tampilkan Semua</button>
+      </div>
+      <div id="rekap-lama-wrap"></div>
+    </div>
+
   </div>
 
   <div class="page" id="page-buang">
@@ -941,6 +958,7 @@ let layananData = [];
 let pasienData  = [];
 let buangData   = [];
 let shiftData   = {};
+let keluarLama  = []; // data dari shared__keluar sistem lama (read-only)
 
 // ===================== HELPERS =====================
 function today() {
@@ -989,7 +1007,7 @@ function go(name) {
   if (name === 'stok')  { renderStok(); }
   if (name === 'buang')   { renderBuangSel(); renderBuangRiwayat(); }
   if (name === 'layanan') { initFormLayanan(); renderLayanan(); }
-  if (name === 'rekap')   { renderRekap(); }
+  if (name === 'rekap')   { initRekap(); }
 }
 
 // ===================== LOGIN =====================
@@ -1009,11 +1027,12 @@ async function cekLogin() {
   document.getElementById('loading-screen').style.display = 'flex';
 
   try {
-    [batches, layananData, pasienData, buangData] = await Promise.all([
+    [batches, layananData, pasienData, buangData, keluarLama] = await Promise.all([
       ld('batches'),
       ld('layanan'),
       ld('pasien'),
       ld('buang'),
+      ld('keluar'),
     ]);
     const rawShift = await ld('shiftdata');
     shiftData = Array.isArray(rawShift) ? {} : (rawShift || {});
@@ -2211,6 +2230,25 @@ function dlLayanan() {
 }
 
 // ===================== REKAP OBAT KELUAR =====================
+function initRekap() {
+  // Init filter bulan & tahun untuk data lama
+  const bs = document.getElementById('lama-bln');
+  const ts = document.getElementById('lama-thn');
+  if (!bs.options.length) {
+    BULAN.forEach((m, i) => {
+      bs.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+        + (i+1 === new Date().getMonth()+1 ? ' selected' : '') + '>' + m + '</option>';
+    });
+  }
+  if (!ts.options.length) {
+    const yr = new Date().getFullYear();
+    for (let y = yr; y >= yr - 4; y--) {
+      ts.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
+    }
+  }
+  renderRekap();
+  renderRekapLama();
+}
 function renderRekap(filter) {
   filter = (filter || '').toLowerCase();
   const wrap = document.getElementById('rekap-wrap');
@@ -2257,6 +2295,222 @@ function renderRekap(filter) {
   });
 
   wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+// State untuk edit data lama sebelum disimpan
+let editDataLama = {}; // { idx: { field: value } }
+
+function renderRekapLama(semua) {
+  const wrap = document.getElementById('rekap-lama-wrap');
+  if (!wrap) return;
+  editDataLama = {};
+
+  if (!keluarLama.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🗂</div><p>Tidak ada data lama.</p></div>';
+    return;
+  }
+
+  let data = [...keluarLama];
+  if (!semua) {
+    const bln = document.getElementById('lama-bln').value;
+    const thn = document.getElementById('lama-thn').value;
+    data = data.filter(r => r.tgl && r.tgl.startsWith(thn + '-' + bln));
+  }
+  data.sort((a, b) => (b.tgl || '').localeCompare(a.tgl || ''));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>Tidak ada data di bulan ini.</p></div>';
+    return;
+  }
+
+  // Simpan data untuk referensi
+  wrap._data = data;
+
+  const DESA_OPTS = ['','HORODOPI','INEBENGGI','WOITOMBO','WATUPUTE','LAPANGISI','SABI-SABILA','LAMBOTUA','PUUOSU','NELOMBU','ULU MOWEWE'];
+
+  let h = '';
+  data.forEach((r, i) => {
+    const nama     = (r.nama || r.namaPasien || '').toUpperCase();
+    const tgl      = r.tgl || '';
+    const nik      = r.nik || '';
+    const diagnosa = (r.diagnosa || r.penyakit || '').toUpperCase();
+    const desa     = (r.desa || '').toUpperCase();
+    const jk       = r.jk || '';
+    const tglLahir = r.tglLahir || '';
+    const umur     = r.umur || '';
+    const catatan  = r.catatan || '';
+
+    // Obat lama
+    let obatStr = '-';
+    if (Array.isArray(r.obat) && r.obat.length) {
+      obatStr = r.obat.map(o =>
+        '<span class="badge bg-pink" style="font-size:10px;margin:1px">'
+        + (o.namaObat || o.nama || '') + ' ×' + (o.qty || o.jumlah || 1) + '</span>'
+      ).join(' ');
+    } else if (typeof r.obat === 'string' && r.obat) {
+      obatStr = '<span style="font-size:12px">' + r.obat + '</span>';
+    }
+
+    const sudahAda = layananData.some(l =>
+      (r.id && l.idLama === r.id) ||
+      (l.namaPasien === nama && l.tgl === tgl)
+    );
+
+    // Helper buat input field — tandai merah jika kosong
+    const inp = (fld, val, type, ph) => {
+      const empty = !val ? 'border-color:#E24B4A;' : '';
+      return '<input type="' + type + '" data-idx="' + i + '" data-fld="' + fld + '" value="' + val + '" placeholder="' + ph + '"'
+        + ' oninput="onEditLama(this)"'
+        + ' style="width:100%;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);' + empty + 'border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none;text-transform:uppercase">';
+    };
+
+    const selJk = '<select data-idx="' + i + '" data-fld="jk" onchange="onEditLama(this)"'
+      + ' style="width:100%;padding:5px 8px;border:1px solid ' + (!jk ? '#E24B4A' : 'rgba(232,144,187,0.38)') + ';border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+      + '<option value="">-- JK --</option>'
+      + '<option value="L"' + (jk==='L'?' selected':'') + '>L</option>'
+      + '<option value="P"' + (jk==='P'?' selected':'') + '>P</option>'
+      + '</select>';
+
+    const selDesa = '<select data-idx="' + i + '" data-fld="desa" onchange="onEditLama(this)"'
+      + ' style="width:100%;padding:5px 8px;border:1px solid ' + (!desa ? '#E24B4A' : 'rgba(232,144,187,0.38)') + ';border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+      + DESA_OPTS.map(d => '<option value="' + d + '"' + (d===desa?' selected':'') + '>' + (d||'-- Desa/Kel --') + '</option>').join('')
+      + '</select>';
+
+    const selLayanan = '<select data-idx="' + i + '" data-fld="jenisLayanan" onchange="onEditLama(this)"'
+      + ' style="width:100%;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+      + ['kunjungan-rumah','posyandu','kantor-desa'].map(v =>
+          '<option value="' + v + '"' + (v===(r.jenisLayanan||'kantor-desa')?' selected':'') + '>' + v + '</option>'
+        ).join('')
+      + '</select>';
+
+    if (sudahAda) {
+      h += '<div style="background:#F0FBF0;border:1px solid #A8D5A8;border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+        + '<span class="badge bg-green">✓ Tersimpan</span>'
+        + '<span style="font-size:13px;font-weight:600">' + nama + '</span>'
+        + '<span style="font-size:12px;color:#A07A8E">' + formatTgl(tgl) + '</span>'
+        + '</div>';
+      return;
+    }
+
+    h += '<div style="background:#FFF6FA;border:1px solid rgba(232,144,187,0.3);border-radius:12px;padding:14px 16px;margin-bottom:10px">'
+      // Header baris
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+      + '<span style="font-size:13px;font-weight:700">' + (nama || '<span style="color:#E24B4A">— Nama kosong —</span>') + '</span>'
+      + '<span style="font-size:11px;color:#A07A8E">' + formatTgl(tgl) + '</span>'
+      + '<span style="font-size:11px;color:#A07A8E">| Obat: ' + obatStr + '</span>'
+      + '</div>'
+      // Grid field
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Tanggal</div>'
+        + inp('tgl', tgl, 'date', '') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Nama Pasien</div>'
+        + inp('nama', nama, 'text', 'Nama...') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">NIK / BPJS</div>'
+        + inp('nik', nik, 'text', 'NIK/BPJS...') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Jenis Kelamin</div>'
+        + selJk + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Tgl Lahir</div>'
+        + inp('tglLahir', tglLahir, 'date', '') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Umur</div>'
+        + inp('umur', umur, 'text', 'Umur...') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Desa / Kelurahan</div>'
+        + selDesa + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Jenis Layanan</div>'
+        + selLayanan + '</div>'
+      + '<div style="grid-column:span 2"><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Diagnosa / Keluhan</div>'
+        + inp('diagnosa', diagnosa, 'text', 'Diagnosa...') + '</div>'
+      + '<div style="grid-column:span 2"><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Catatan</div>'
+        + inp('catatan', catatan, 'text', 'Catatan...') + '</div>'
+      + '</div>'
+      // Tombol simpan
+      + '<div style="display:flex;justify-content:flex-end">'
+      + '<button class="btn btn-p btn-sm" data-idx="' + i + '" onclick="simpanDataLama(this.dataset.idx)">💾 Simpan ke Data Baru</button>'
+      + '</div>'
+      + '</div>';
+  });
+
+  wrap.innerHTML = h;
+}
+
+function onEditLama(el) {
+  const idx = el.dataset.idx;
+  const fld = el.dataset.fld;
+  let val   = el.value;
+  if (el.type === 'text') val = val.toUpperCase();
+  if (!editDataLama[idx]) editDataLama[idx] = {};
+  editDataLama[idx][fld] = val;
+  // Update border color
+  el.style.borderColor = val ? 'rgba(232,144,187,0.38)' : '#E24B4A';
+}
+
+async function simpanDataLama(idx) {
+  const wrap = document.getElementById('rekap-lama-wrap');
+  if (!wrap || !wrap._data) return;
+
+  const r    = wrap._data[parseInt(idx)];
+  const edit = editDataLama[idx] || {};
+  if (!r) return;
+
+  // Gabung data asli dengan hasil edit
+  const nama      = (edit.nama      || r.nama      || r.namaPasien || '').toUpperCase();
+  const tgl       = edit.tgl        || r.tgl        || today();
+  const nik       = edit.nik        || r.nik        || '';
+  const jk        = edit.jk         || r.jk         || '';
+  const tglLahir  = edit.tglLahir   || r.tglLahir   || '';
+  const umur      = edit.umur       || r.umur       || hitungUmur(tglLahir);
+  const desa      = (edit.desa      || r.desa       || '').toUpperCase();
+  const diagnosa  = (edit.diagnosa  || r.diagnosa   || r.penyakit || '').toUpperCase();
+  const layanan   = edit.jenisLayanan || r.jenisLayanan || 'kantor-desa';
+  const catatan   = edit.catatan    || r.catatan    || 'Diimpor dari data lama';
+
+  if (!nama) { showAlert('al-rekap', 'Nama pasien wajib diisi sebelum menyimpan.', 'e'); return; }
+
+  // Cek duplikat
+  const sudahAda = layananData.some(l =>
+    (r.id && l.idLama === r.id) ||
+    (l.namaPasien === nama && l.tgl === tgl)
+  );
+  if (sudahAda) { showAlert('al-rekap', 'Data ini sudah tersimpan.', 'e'); return; }
+
+  // Format obat lama
+  let obat = [];
+  if (Array.isArray(r.obat) && r.obat.length) {
+    obat = r.obat.map(o => ({
+      batchId   : o.batchId || '',
+      namaObat  : (o.namaObat || o.nama || '').toUpperCase(),
+      qty       : o.qty || o.jumlah || 1,
+      tglExpired: o.tglExpired || ''
+    }));
+  }
+
+  const rec = {
+    id            : genId(),
+    idLama        : r.id || '',
+    tgl, namaPasien: nama, jk, tglLahir, umur, desa, nik,
+    jenisKunjungan: 'lama',
+    jenisLayanan  : layanan,
+    pemeriksaan   : {},
+    diagnosa, tindakan: '',
+    jenisObat     : obat.length ? 'desa' : 'kosong',
+    obat,
+    obatPuskesmas : '',
+    catatan
+  };
+
+  layananData.push(rec);
+  await sv('layanan', layananData);
+
+  // Simpan juga profil pasien jika belum ada
+  if (nama && !pasienData.find(p => p.nama === nama)) {
+    const newP = { id: genId(), nama, jk, tglLahir, umur, desa };
+    if (nik) newP.nik = nik;
+    pasienData.push(newP);
+    await sv('pasien', pasienData);
+  }
+
+  showAlert('al-rekap', '✓ Data ' + nama + ' berhasil disimpan ke data baru.', 's');
+  renderRekapLama();
+  renderRekap();
 }
 
 function dlRekap() {
