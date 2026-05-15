@@ -554,6 +554,7 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
     <button class="nav-btn" onclick="go('stok')">📦 Stok Obat</button>
     <button class="nav-btn" onclick="go('buang')">🗑 Buang/Expired</button>
     <button class="nav-btn" onclick="go('layanan')">🏥 Layanan Pasien</button>
+    <button class="nav-btn" onclick="go('reklayanan')">📑 Rekap Layanan</button>
     <button class="nav-btn" onclick="go('rekap')">📋 Rekap Obat Keluar</button>
     <button class="nav-btn" onclick="go('rjtp')">📄 Lap. RJTP</button>
     <button class="nav-btn" onclick="go('laporan')">📊 Rekap Bulanan</button>
@@ -623,6 +624,26 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
         </div>
       </div>
       <div id="stok-wrap"></div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-reklayanan">
+
+    <div id="al-reklayanan" class="alert"></div>
+
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">📑 Rekap Layanan Pasien</div>
+        <div class="fg">
+          <select id="rl-bln" onchange="renderRekLayanan()" style="width:140px"></select>
+          <select id="rl-thn" onchange="renderRekLayanan()" style="width:100px"></select>
+          <input class="search-input" type="text" id="rl-search" placeholder="🔍 Cari nama..."
+            oninput="renderRekLayanan()" style="width:160px">
+          <button class="btn btn-p btn-sm" onclick="dlRekLayanan()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="reklayanan-wrap"></div>
     </div>
 
   </div>
@@ -874,19 +895,6 @@ input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
       </div>
     </div>
 
-    <!-- RIWAYAT -->
-    <div class="card">
-      <div class="fb" style="margin-bottom:14px">
-        <div class="card-title" style="margin:0">Riwayat Layanan Pasien</div>
-        <div class="fg">
-          <input class="search-input" type="text" placeholder="🔍 Cari nama..."
-            oninput="renderLayanan(this.value)" style="width:180px">
-          <button class="btn btn-p btn-sm" onclick="dlLayanan()">⬇ Unduh XLSX</button>
-        </div>
-      </div>
-      <div id="layanan-wrap"></div>
-    </div>
-
   </div>
 
   <div class="page" id="page-rjtp">
@@ -950,7 +958,7 @@ const PASSWORD = 'SenyumSayang';
 const BULAN    = ['Januari','Februari','Maret','April','Mei','Juni',
                   'Juli','Agustus','September','Oktober','November','Desember'];
 const HARI     = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-const PAGES    = ['masuk','stok','buang','layanan','rekap','rjtp','laporan','shift'];
+const PAGES    = ['masuk','stok','buang','layanan','reklayanan','rekap','rjtp','laporan','shift'];
 
 // ===================== STATE GLOBAL =====================
 let batches     = [];
@@ -1006,7 +1014,8 @@ function go(name) {
   if (name === 'masuk') { renderWarnMasuk(); renderMasukHariIni(); }
   if (name === 'stok')  { renderStok(); }
   if (name === 'buang')   { renderBuangSel(); renderBuangRiwayat(); }
-  if (name === 'layanan') { initFormLayanan(); renderLayanan(); }
+  if (name === 'layanan')    { initFormLayanan(); }
+  if (name === 'reklayanan') { initRekLayanan(); }
   if (name === 'rekap')   { initRekap(); }
 }
 
@@ -2539,7 +2548,238 @@ function dlRekap() {
   XLSX.writeFile(wb, 'REKAP_OBAT_KELUAR_' + today().replace(/-/g, '') + '.xlsx');
 }
 
+// ===================== REKAP LAYANAN =====================
+let editLayananId = null; // id layanan yang sedang diedit di popup
+
+function initRekLayanan() {
+  const bs = document.getElementById('rl-bln');
+  const ts = document.getElementById('rl-thn');
+  if (!bs.options.length) {
+    BULAN.forEach((m, i) => {
+      bs.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+        + (i+1 === new Date().getMonth()+1 ? ' selected' : '') + '>' + m + '</option>';
+    });
+  }
+  if (!ts.options.length) {
+    const yr = new Date().getFullYear();
+    for (let y = yr; y >= yr - 4; y--) {
+      ts.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
+    }
+  }
+  renderRekLayanan();
+}
+
+function renderRekLayanan() {
+  const wrap   = document.getElementById('reklayanan-wrap');
+  if (!wrap) return;
+  const bln    = document.getElementById('rl-bln').value;
+  const thn    = document.getElementById('rl-thn').value;
+  const filter = (document.getElementById('rl-search').value || '').toLowerCase();
+  const pfx    = thn + '-' + bln;
+
+  const data = layananData
+    .filter(r => r.tgl && r.tgl.startsWith(pfx))
+    .filter(r => !filter || (r.namaPasien || '').toLowerCase().includes(filter))
+    .sort((a, b) => a.tgl.localeCompare(b.tgl));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📑</div><p>Tidak ada data layanan di bulan ini.</p></div>';
+    return;
+  }
+
+  const jlbl = {
+    'kunjungan-rumah': '🏠 Kunjungan Rumah',
+    'posyandu'       : '👶 Posyandu',
+    'kantor-desa'    : '🏛 Kantor Desa'
+  };
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama Pasien</th><th>Desa</th>'
+    + '<th>Jenis Layanan</th><th>Diagnosa</th><th>Obat</th><th>Detail</th>'
+    + '</tr></thead><tbody>';
+
+  data.forEach((r, i) => {
+    let obatStr = '-';
+    if (r.jenisObat === 'desa' && r.obat && r.obat.length) {
+      obatStr = r.obat.map(o =>
+        '<span class="badge bg-pink" style="font-size:10px;margin:1px">' + o.namaObat + ' ×' + o.qty + '</span>'
+      ).join(' ');
+    } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
+      const txt = r.obatPuskesmas.length > 30 ? r.obatPuskesmas.substring(0,30) + '...' : r.obatPuskesmas;
+      obatStr = '<span class="badge bg-blue" style="font-size:10px">🏥 ' + txt + '</span>';
+    }
+
+    h += '<tr style="cursor:pointer" data-id="' + r.id + '" onclick="bukaPopupLayanan(this.dataset.id)" onmouseover="this.style.background=\'#FEF0F8\'" onmouseout="this.style.background=\'\'">'  
+      + '<td style="color:#A07A8E">' + (i+1) + '</td>'
+      + '<td style="white-space:nowrap">' + formatTgl(r.tgl) + '</td>'
+      + '<td><b>' + r.namaPasien + '</b></td>'
+      + '<td style="font-size:12px">' + (r.desa || '-') + '</td>'
+      + '<td style="font-size:12px">' + (jlbl[r.jenisLayanan] || r.jenisLayanan || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.diagnosa || '-') + '</td>'
+      + '<td>' + obatStr + '</td>'
+      + '<td><span style="font-size:11px;color:#C0426E;font-weight:500">Klik →</span></td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+function bukaPopupLayanan(id) {
+  const r = layananData.find(x => x.id === id);
+  if (!r) return;
+  editLayananId = id;
+  const pm = r.pemeriksaan || {};
+
+  document.getElementById('popup-lay-title').textContent =
+    'Detail Layanan — ' + r.namaPasien + ' (' + formatTgl(r.tgl) + ')';
+
+  const DESA_OPTS = ['','HORODOPI','INEBENGGI','WOITOMBO','WATUPUTE','LAPANGISI','SABI-SABILA','LAMBOTUA','PUUOSU','NELOMBU','ULU MOWEWE'];
+
+  const inp = (id, val, type, label, readonly) =>
+    '<div class="fr"><label>' + label + '</label>'
+    + '<input type="' + type + '" id="el-' + id + '" value="' + (val||'') + '"'
+    + (readonly ? ' readonly' : ' class="uc-input"')
+    + '></div>';
+
+  const selOpts = (id, val, label, opts) =>
+    '<div class="fr"><label>' + label + '</label>'
+    + '<select id="el-' + id + '">'
+    + opts.map(o => '<option value="' + o.v + '"' + (o.v===val?' selected':'') + '>' + o.l + '</option>').join('')
+    + '</select></div>';
+
+  // Obat info (readonly)
+  let obatInfo = '-';
+  if (r.jenisObat === 'desa' && r.obat && r.obat.length) {
+    obatInfo = r.obat.map(o => o.namaObat + ' ×' + o.qty).join(', ');
+  } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
+    obatInfo = '🏥 ' + r.obatPuskesmas;
+  }
+
+  document.getElementById('popup-lay-body').innerHTML =
+    // Data Pasien
+    '<div style="font-size:11px;font-weight:600;color:#A07A8E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">👤 Data Pasien</div>'
+    + '<div class="g2">'
+    + inp('tgl',      r.tgl,      'date', 'Tanggal Layanan')
+    + selOpts('jenisLayanan', r.jenisLayanan, 'Jenis Layanan', [
+        {v:'kunjungan-rumah',l:'🏠 Kunjungan Rumah'},
+        {v:'posyandu',       l:'👶 Posyandu'},
+        {v:'kantor-desa',    l:'🏛 Kantor Desa'}
+      ])
+    + inp('namaPasien', r.namaPasien, 'text', 'Nama Pasien')
+    + selOpts('jk', r.jk, 'Jenis Kelamin', [{v:'',l:'-- Pilih --'},{v:'L',l:'Laki-laki'},{v:'P',l:'Perempuan'}])
+    + inp('tglLahir', r.tglLahir, 'date', 'Tanggal Lahir')
+    + inp('umur',     r.umur,     'text', 'Umur')
+    + selOpts('desa', r.desa, 'Desa / Kelurahan',
+        [{v:'',l:'-- Pilih --'}].concat(DESA_OPTS.filter(d=>d).map(d=>({v:d,l:d})))
+      )
+    + inp('nik', r.nik||r.bpjs||'', 'text', 'NIK / BPJS')
+    + '</div>'
+    // Pemeriksaan
+    + '<div style="font-size:11px;font-weight:600;color:#A07A8E;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 10px">🩺 Pemeriksaan Fisik</div>'
+    + '<div class="g4">'
+    + inp('bb',   pm.bb,   'number', 'BB (kg)')
+    + inp('tb',   pm.tb,   'number', 'TB (cm)')
+    + inp('lp',   pm.lp,   'number', 'LP (cm)')
+    + inp('td',   pm.td,   'text',   'TD (mmHg)')
+    + inp('n',    pm.n,    'number', 'Nadi (/mnt)')
+    + inp('s',    pm.s,    'number', 'Suhu (°C)')
+    + inp('p',    pm.p,    'number', 'Pernapasan (/mnt)')
+    + inp('chol', pm.chol, 'number', 'CHOL (mg/dL)')
+    + inp('au',   pm.au,   'number', 'AU (mg/dL)')
+    + inp('gda',  pm.gda,  'number', 'GDA (mg/dL)')
+    + '</div>'
+    // Klinis
+    + '<div style="font-size:11px;font-weight:600;color:#A07A8E;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 10px">📋 Klinis</div>'
+    + '<div class="g2">'
+    + inp('diagnosa', r.diagnosa, 'text', 'Diagnosa / Keluhan')
+    + inp('tindakan', r.tindakan, 'text', 'Tindakan')
+    + '</div>'
+    + '<div class="fr"><label>Obat</label>'
+    + '<input type="text" value="' + obatInfo + '" readonly style="background:#FEF0F8;color:#C0426E"></div>'
+    + inp('catatan', r.catatan, 'text', 'Catatan');
+
+  document.getElementById('popup-layanan').style.display = 'flex';
+}
+
+function tutupPopupLayanan() {
+  document.getElementById('popup-layanan').style.display = 'none';
+  editLayananId = null;
+}
+
+async function simpanEditLayanan() {
+  if (!editLayananId) return;
+  const r = layananData.find(x => x.id === editLayananId);
+  if (!r) return;
+
+  const g = id => { const el = document.getElementById('el-' + id); return el ? el.value : ''; };
+
+  r.tgl          = g('tgl');
+  r.jenisLayanan = g('jenisLayanan');
+  r.namaPasien   = g('namaPasien').toUpperCase();
+  r.jk           = g('jk');
+  r.tglLahir     = g('tglLahir');
+  r.umur         = g('umur') || hitungUmur(r.tglLahir);
+  r.desa         = g('desa').toUpperCase();
+  r.nik          = g('nik').toUpperCase();
+  r.diagnosa     = g('diagnosa').toUpperCase();
+  r.tindakan     = g('tindakan').toUpperCase();
+  r.catatan      = g('catatan').toUpperCase();
+  r.pemeriksaan  = {
+    bb: g('bb'), tb: g('tb'), lp: g('lp'), td: g('td'),
+    n : g('n'),  s : g('s'),  p : g('p'),
+    chol: g('chol'), au: g('au'), gda: g('gda')
+  };
+
+  await sv('layanan', layananData);
+  showAlert('al-reklayanan', '✓ Data layanan ' + r.namaPasien + ' berhasil diperbarui.', 's');
+  tutupPopupLayanan();
+  renderRekLayanan();
+}
+
+function dlRekLayanan() {
+  const bln  = document.getElementById('rl-bln').value;
+  const thn  = document.getElementById('rl-thn').value;
+  const pfx  = thn + '-' + bln;
+  const data = layananData.filter(r => r.tgl && r.tgl.startsWith(pfx))
+    .sort((a, b) => a.tgl.localeCompare(b.tgl));
+
+  if (!data.length) { alert('Tidak ada data di bulan ini.'); return; }
+
+  const rows = [['No','Tanggal','Nama','Desa','JK','Umur','Layanan',
+    'BB','TB','LP','TD','N','S','P','CHOL','AU','GDA',
+    'Diagnosa','Tindakan','Jenis Obat','Obat','Catatan']];
+  data.forEach((r, i) => {
+    const pm = r.pemeriksaan || {};
+    const obat = r.jenisObat === 'desa'
+      ? (r.obat || []).map(o => o.namaObat + '×' + o.qty).join(', ')
+      : r.obatPuskesmas || '-';
+    rows.push([i+1, r.tgl, r.namaPasien, r.desa||'-', r.jk||'-', r.umur||'-',
+      r.jenisLayanan, pm.bb||'-', pm.tb||'-', pm.lp||'-', pm.td||'-',
+      pm.n||'-', pm.s||'-', pm.p||'-', pm.chol||'-', pm.au||'-', pm.gda||'-',
+      r.diagnosa||'-', r.tindakan||'-', r.jenisObat, obat, r.catatan||'-']);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekap Layanan');
+  XLSX.writeFile(wb, 'REKAP_LAYANAN_' + BULAN[parseInt(bln)-1] + '_' + thn + '.xlsx');
+}
+
 // ===================== BOOT =====================
+// Tutup popup layanan saat klik backdrop
+document.getElementById('popup-layanan').addEventListener('click', function(e) {
+  if (e.target === this) tutupPopupLayanan();
+});
+
+// Auto-uppercase untuk input dengan class uc-input (dipakai di popup layanan)
+document.addEventListener('input', function(e) {
+  if (e.target.classList.contains('uc-input') && e.target.type !== 'date' && e.target.type !== 'number') {
+    const pos = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    e.target.setSelectionRange(pos, pos);
+  }
+});
+
 // Tutup autocomplete saat klik di luar
 document.addEventListener('click', function(e) {
   const list = document.getElementById('autocomplete-list');
@@ -2558,5 +2798,20 @@ window.addEventListener('load', function () {
   setTimeout(() => document.getElementById('login-pass').focus(), 150);
 });
 </script>
+<!-- POPUP DETAIL LAYANAN -->
+<div id="popup-layanan" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(45,26,36,0.55);align-items:center;justify-content:center;padding:16px">
+  <div style="background:white;border-radius:20px;width:100%;max-width:680px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(150,30,80,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(232,144,187,0.22)">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#2D1A24" id="popup-lay-title">Detail Layanan</div>
+      <button class="btn btn-sm" onclick="tutupPopupLayanan()">✕ Tutup</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px" id="popup-lay-body"></div>
+    <div style="padding:14px 20px;border-top:1px solid rgba(232,144,187,0.22);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="tutupPopupLayanan()">Batal</button>
+      <button class="btn btn-p" onclick="simpanEditLayanan()">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
