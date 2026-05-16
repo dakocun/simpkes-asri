@@ -800,7 +800,7 @@ table.rjtp-tbl tbody tr.auto-row:hover td{background:rgba(192,66,110,.1)!importa
 
       <!-- Langkah 1: Jenis Kunjungan -->
       <div class="fr">
-        <label>Langkah 1 — Jenis Kunjungan</label>
+        <label>Jenis Kunjungan</label>
         <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden">
           <input type="radio" name="jns-kunjungan" id="jk-baru" value="baru" style="display:none" checked>
           <label for="jk-baru" class="radio-lbl">🆕 Kunjungan Baru</label>
@@ -811,7 +811,7 @@ table.rjtp-tbl tbody tr.auto-row:hover td{background:rgba(192,66,110,.1)!importa
 
       <!-- Langkah 2: Jenis Layanan -->
       <div class="fr">
-        <label>Langkah 2 — Jenis Layanan</label>
+        <label>Jenis Layanan</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="pill-btn" onclick="pilihLayanan(this,'kunjungan-rumah')">🏠 Kunjungan Rumah</button>
           <button class="pill-btn" onclick="pilihLayanan(this,'posyandu')">👶 Posyandu</button>
@@ -943,7 +943,7 @@ table.rjtp-tbl tbody tr.auto-row:hover td{background:rgba(192,66,110,.1)!importa
       <div id="wrap-obat-pusk" style="display:none">
         <div class="fr">
           <label>Tulis Obat dari Puskesmas</label>
-          <textarea id="obat-pusk-input" rows="3" placeholder="Contoh: Amlodipin 5mg 1x1, Metformin 500mg 2x1..."></textarea>
+          <textarea id="obat-pusk-input" rows="3" placeholder="Contoh: Amlodipin 5mg 1x1, Metformin 500mg 2x1..." oninput="this.value=this.value.toUpperCase()"></textarea>
         </div>
       </div>
 
@@ -2319,7 +2319,7 @@ async function simpanLayanan() {
   const obatPusk     = document.getElementById('obat-pusk-input').value.trim();
 
   // Validasi
-  if (!selLayanan) { showAlert('al-layanan', 'Pilih jenis layanan terlebih dahulu (Langkah 2).', 'e'); return; }
+  if (!selLayanan) { showAlert('al-layanan', 'Pilih jenis layanan terlebih dahulu.', 'e'); return; }
   if (!nama)       { showAlert('al-layanan', 'Nama pasien wajib diisi.', 'e'); return; }
   if (!tgl)        { showAlert('al-layanan', 'Tanggal layanan wajib diisi.', 'e'); return; }
 
