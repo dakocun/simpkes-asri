@@ -3683,7 +3683,7 @@ function rjtpCollect(){
   return rjtpRowIds.map(id=>{
     const s=rjtpV('rsistol',id),d=rjtpV('rdiastol',id);
     return{tgl:rjtpV('rtgl',id),nomor:rjtpV('rnomor',id),nama:rjtpV('rnama',id),umur:rjtpV('rumur',id),jk:rjtpV('rjk',id),bb:rjtpV('rbb',id),tb:rjtpV('rtb',id),lp:rjtpV('rlp',id),td:s&&d?s+'/'+d:(s||d||''),nadi:rjtpV('rnadi',id),suhu:rjtpV('rsuhu',id),rr:rjtpV('rrr',id),chol:rjtpV('rchol',id),au:rjtpV('rau',id),gda:rjtpV('rgda',id),diag:rjtpV('rdiag',id),ther:rjtpV('rther',id),kunj:rjtpV('rkunj',id)};
-  });
+  }).sort((a,b)=>(a.tgl||'').localeCompare(b.tgl||''));
 }
 
 // ---- AUTO-FILL SABI-SABILA ----
