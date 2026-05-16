@@ -708,8 +708,10 @@ table.rjtp-tbl tbody tr.auto-row:hover td{background:rgba(192,66,110,.1)!importa
       <div class="fb" style="margin-bottom:14px">
         <div class="card-title" style="margin:0">📋 Rekap Obat Keluar</div>
         <div class="fg">
+          <select id="rekap-bln" onchange="renderRekap()" style="width:130px"></select>
+          <select id="rekap-thn" onchange="renderRekap()" style="width:95px"></select>
           <input class="search-input" type="text" id="search-rekap" placeholder="🔍 Cari nama pasien..."
-            oninput="renderRekap(this.value)" style="width:180px">
+            oninput="renderRekap()" style="width:160px">
           <button class="btn btn-p btn-sm" onclick="dlRekap()">⬇ Unduh XLSX</button>
         </div>
       </div>
@@ -2500,17 +2502,35 @@ function dlLayanan() {
 
 // ===================== REKAP OBAT KELUAR =====================
 function initRekap() {
+  const yr = new Date().getFullYear();
+  const curM = new Date().getMonth() + 1;
+
+  // Init filter bulan & tahun untuk Rekap Obat Keluar
+  const rb = document.getElementById('rekap-bln');
+  const rt = document.getElementById('rekap-thn');
+  if (!rb.options.length) {
+    rb.innerHTML = '<option value="">Semua Bulan</option>';
+    BULAN.forEach((m, i) => {
+      rb.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+        + (i+1 === curM ? ' selected' : '') + '>' + m + '</option>';
+    });
+  }
+  if (!rt.options.length) {
+    for (let y = yr; y >= yr - 4; y--) {
+      rt.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
+    }
+  }
+
   // Init filter bulan & tahun untuk data lama
   const bs = document.getElementById('lama-bln');
   const ts = document.getElementById('lama-thn');
   if (!bs.options.length) {
     BULAN.forEach((m, i) => {
       bs.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
-        + (i+1 === new Date().getMonth()+1 ? ' selected' : '') + '>' + m + '</option>';
+        + (i+1 === curM ? ' selected' : '') + '>' + m + '</option>';
     });
   }
   if (!ts.options.length) {
-    const yr = new Date().getFullYear();
     for (let y = yr; y >= yr - 4; y--) {
       ts.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
     }
@@ -2518,20 +2538,29 @@ function initRekap() {
   renderRekap();
   renderRekapLama();
 }
-function renderRekap(filter) {
-  filter = (filter || '').toLowerCase();
+function renderRekap() {
+  const bln  = document.getElementById('rekap-bln').value;
+  const thn  = document.getElementById('rekap-thn').value;
+  const filter = (document.getElementById('search-rekap').value || '').toLowerCase();
   const wrap = document.getElementById('rekap-wrap');
   if (!wrap) return;
 
-  // Tampilkan semua layanan yang ada obat (desa atau puskesmas)
-  const data = layananData
+  let data = layananData
     .filter(r => (r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
-               || (r.jenisObat === 'puskesmas' && r.obatPuskesmas))
-    .filter(r => !filter || r.namaPasien.toLowerCase().includes(filter))
-    .sort((a, b) => b.tgl.localeCompare(a.tgl));
+               || (r.jenisObat === 'puskesmas' && r.obatPuskesmas));
+
+  // Filter bulan & tahun
+  if (thn) data = data.filter(r => r.tgl && r.tgl.startsWith(thn));
+  if (bln) data = data.filter(r => r.tgl && r.tgl.slice(5, 7) === bln);
+
+  // Filter nama
+  if (filter) data = data.filter(r => r.namaPasien.toLowerCase().includes(filter));
+
+  data.sort((a, b) => b.tgl.localeCompare(a.tgl));
 
   if (!data.length) {
-    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Belum ada rekap obat keluar.</p></div>';
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Belum ada rekap obat keluar'
+      + (bln || thn ? ' di periode ini' : '') + '.</p></div>';
     return;
   }
 
@@ -2924,29 +2953,32 @@ async function simpanEditObatKeluar() {
 }
 
 function dlRekap() {
-  const data = layananData
-    .filter(r => r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
-    .sort((a, b) => b.tgl.localeCompare(a.tgl));
+  const bln = document.getElementById('rekap-bln').value;
+  const thn = document.getElementById('rekap-thn').value;
 
-  if (!data.length) { alert('Belum ada data rekap obat keluar.'); return; }
+  let data = layananData
+    .filter(r => (r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
+               || (r.jenisObat === 'puskesmas' && r.obatPuskesmas));
+  if (thn) data = data.filter(r => r.tgl && r.tgl.startsWith(thn));
+  if (bln) data = data.filter(r => r.tgl && r.tgl.slice(5, 7) === bln);
+  data.sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) { alert('Belum ada data rekap obat keluar' + (bln || thn ? ' di periode ini' : '') + '.'); return; }
 
   const rows = [['No','Tanggal','Nama Pasien','Desa','Jenis Layanan','Diagnosa','Obat Diberikan']];
   data.forEach((r, i) => {
-    rows.push([
-      i + 1,
-      r.tgl,
-      r.namaPasien,
-      r.desa || '-',
-      r.jenisLayanan,
-      r.diagnosa || '-',
-      r.obat.map(o => o.namaObat + ' x' + o.qty).join(', ')
-    ]);
+    const obatStr = r.jenisObat === 'desa'
+      ? r.obat.map(o => o.namaObat + ' x' + o.qty).join(', ')
+      : r.obatPuskesmas || '-';
+    rows.push([i + 1, r.tgl, r.namaPasien, r.desa || '-', r.jenisLayanan, r.diagnosa || '-', obatStr]);
   });
 
+  const bulanLabel = bln ? BULAN[parseInt(bln) - 1] : 'Semua';
+  const thnLabel   = thn || 'Semua';
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Rekap Obat Keluar');
-  XLSX.writeFile(wb, 'REKAP_OBAT_KELUAR_' + today().replace(/-/g, '') + '.xlsx');
+  XLSX.writeFile(wb, 'REKAP_OBAT_KELUAR_' + bulanLabel + '_' + thnLabel + '.xlsx');
 }
 
 // ===================== REKAP LAYANAN =====================
