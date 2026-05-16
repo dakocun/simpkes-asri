@@ -3756,7 +3756,7 @@ function rjtpBuildPDF(){
   T('ALAMAT',lblX,y);T(':',colX,y);T('KECAMATAN MOWEWE',valX,y);y+=4.5;
   T('NAMA DESA/KELURAHAN',lblX,y);T(':',colX,y);T(desa,valX,y);y+=6;
   // Kolom: total = CW = 281
-  const W={no:5,tgl:18,id:30,nama:27,umur:7,jk:6,bb:7,tb:7,lp:7,td:15,nadi:8,suhu:8,rr:8,chol:9,au:9,gda:9,diag:38,ther:39,kunj:18};
+  const W={no:5,tgl:18,id:30,nama:27,umur:7,jk:6,bb:7,tb:7,lp:7,td:15,nadi:8,suhu:8,rr:8,chol:9,au:9,gda:9,diag:40,ther:43,kunj:18};
   const COL_ORDER=['no','tgl','id','nama','umur','jk','bb','tb','lp','td','nadi','suhu','rr','chol','au','gda','diag','ther','kunj'];
   const VITALS=['nadi','suhu','rr','chol','au','gda'],V_LABELS=['N','S','P','CHOL','AU','GDA'];
   const CX={};let cur=ML;COL_ORDER.forEach(k=>{CX[k]=cur;cur+=W[k];});
