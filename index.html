@@ -1598,31 +1598,26 @@ function renderStok(filter) {
     return s;
   };
 
-  // Section stok habis
+  // Section stok habis — paling atas, hanya nama obat
   const mkSectionHabis = () => {
     const namaHabis = allNamaObat().filter(n => stokByName(n) === 0);
     const filtered  = !filter ? namaHabis : namaHabis.filter(n => n.toLowerCase().includes(filter));
     if (!filtered.length) return '';
-    let s = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0 6px;border-bottom:1px solid rgba(232,144,187,0.22);margin-bottom:4px;margin-top:12px">';
+    let s = '<div style="display:flex;align-items:center;gap:8px;padding:10px 0 6px;border-bottom:1px solid rgba(232,144,187,0.22);margin-bottom:8px">';
     s += '<span style="color:#A32D2D;font-size:12px;font-weight:600">⭕ Stok Habis</span>';
     s += '<span class="badge bg-red">' + filtered.length + ' jenis</span></div>';
-    s += '<div class="tw"><table><thead><tr>';
-    s += '<th>Nama Obat</th><th>Total Sisa</th><th>Batch</th><th>Stok Awal</th><th>Tgl Masuk</th><th>Tgl Expired</th><th>Sisa</th><th>Status</th><th>Aksi</th>';
-    s += '</tr></thead><tbody>';
+    s += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">';
     filtered.forEach(n => {
-      s += '<tr><td style="font-weight:600;color:#A07A8E">' + n + '</td>'
-        + '<td><span class="badge bg-red">0</span></td>'
-        + '<td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>'
-        + '</tr>';
+      s += '<span style="background:#FCEBEB;color:#A32D2D;border:1px solid rgba(163,45,45,0.2);border-radius:8px;padding:4px 12px;font-size:12px;font-weight:500">' + n + '</span>';
     });
-    s += '</tbody></table></div>';
+    s += '</div>';
     return s;
   };
 
+  html += mkSectionHabis();
   if (gExp.length)      html += mkSectionBatch('🔴 Sudah Expired', '#A32D2D', gExp);
   if (gWarn.length)     html += mkSectionBatch('⚠️ Menjelang Expired (≤30 hari)', '#854F0B', gWarn);
   if (gBaik.length)     html += mkSectionBatch('✅ Stok Baik', '#3B6D11', gBaik);
-  html += mkSectionHabis();
   html += mkSectionTanpaExp(gTanpaExp);
 
   wrap.innerHTML = html;
