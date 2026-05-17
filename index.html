@@ -2044,7 +2044,11 @@ function pilihPasien(id) {
   const pasienFields = ['lp-noid','lp-nama','lp-tgllahir'];
   pasienFields.forEach(fid => {
     const el = document.getElementById(fid);
-    if (el) el.oninput = cekPerubahanPasien;
+    if (!el) return;
+    el.oninput = function() {
+      if (this.type === 'text') this.value = this.value.toUpperCase();
+      cekPerubahanPasien();
+    };
   });
   ['lp-jk','lp-desa','ti-bpjs','ti-nik'].forEach(fid => {
     const el = document.getElementById(fid);
@@ -2439,8 +2443,11 @@ function renderLayanan(filter) {
         '<span class="badge bg-pink" style="font-size:10px;margin:1px">' + o.namaObat + ' ×' + o.qty + '</span>'
       ).join(' ');
     } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
-      const txt = r.obatPuskesmas.length > 35 ? r.obatPuskesmas.substring(0, 35) + '...' : r.obatPuskesmas;
-      obatStr = '<span class="badge bg-blue" style="font-size:10px">🏥 ' + txt + '</span>';
+      const lines2 = r.obatPuskesmas.split('\n').map(o => o.trim()).filter(o => o);
+      obatStr = lines2.map(o => {
+        const txt = o.length > 30 ? o.substring(0,30) + '...' : o;
+        return '<span class="badge bg-blue" style="font-size:10px;margin:1px;display:inline-block">🏥 ' + txt + '</span>';
+      }).join(' ');
     }
 
     h += '<tr>'
@@ -2575,7 +2582,10 @@ function renderRekap() {
         '<span class="badge bg-pink" style="margin:1px;font-size:10px">' + o.namaObat + ' ×' + o.qty + '</span>'
       ).join(' ');
     } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
-      obatStr = '<span class="badge bg-blue" style="font-size:10px">🏥 ' + r.obatPuskesmas + '</span>';
+      obatStr = r.obatPuskesmas.split('\n')
+        .map(o => o.trim()).filter(o => o)
+        .map(o => '<span class="badge bg-blue" style="font-size:10px;margin:1px;display:inline-block">🏥 ' + o + '</span>')
+        .join(' ');
     }
 
     h += '<tr>'
@@ -3175,7 +3185,9 @@ function dlRekLayanan() {
     const pm = r.pemeriksaan || {};
     const obat = r.jenisObat === 'desa'
       ? (r.obat || []).map(o => o.namaObat + '×' + o.qty).join(', ')
-      : r.obatPuskesmas || '-';
+      : r.obatPuskesmas
+        ? r.obatPuskesmas.split('\n').map(o => o.trim()).filter(o => o).join('; ')
+        : '-';
     rows.push([i+1, r.tgl, r.namaPasien, r.desa||'-', r.jk||'-', r.umur||'-',
       r.jenisLayanan, pm.bb||'-', pm.tb||'-', pm.lp||'-', pm.td||'-',
       pm.n||'-', pm.s||'-', pm.p||'-', pm.chol||'-', pm.au||'-', pm.gda||'-',
@@ -3505,6 +3517,27 @@ function renderRekapKegiatan(){
   wrap.innerHTML = html;
 }
 
+
+// Helper: format obat puskesmas multi-baris jadi bullets
+function formatObatPusk(obatPusk) {
+  if (!obatPusk) return '';
+  const lines = obatPusk.split('\n').map(o => o.trim()).filter(o => o);
+  if (lines.length <= 1) return obatPusk;
+  return lines.map(o => '• ' + o).join('\n');
+}
+
+// Helper: format tindakan/obat untuk kolom RJTP
+function formatTindakanObat(tindakan, jenisObat, obat, obatPuskesmas) {
+  const parts = [];
+  if (tindakan) parts.push(tindakan);
+  if (jenisObat === 'desa' && obat && obat.length) {
+    obat.forEach(o => parts.push('• ' + o.namaObat + ' ' + o.qty));
+  } else if (jenisObat === 'puskesmas' && obatPuskesmas) {
+    const lines = obatPuskesmas.split('\n').map(o => o.trim()).filter(o => o);
+    lines.forEach(o => parts.push('• ' + o));
+  }
+  return parts.join('\n');
+}
 
 // ===================== BOOT =====================
 window.addEventListener('load', function () {
