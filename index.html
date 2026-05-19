@@ -3904,18 +3904,70 @@ function rjtpPreviewPDF(){
   setTimeout(()=>{
     try{
       rjtpSetProgress(50);const doc=rjtpBuildPDF();rjtpSetProgress(80);
-      const url=URL.createObjectURL(doc.output('blob'));
       const bulanNum=parseInt(document.getElementById('rjtp-bulan').value);
       const tahun=document.getElementById('rjtp-tahun').value;
       const desa=document.getElementById('rjtp-desa').value;
       document.getElementById('rjtp-modal-title').textContent='Pratinjau RJTP — '+desa+' '+RJTP_BULAN_UP[bulanNum]+' '+tahun;
-      document.getElementById('rjtp-modal-info').textContent=rjtpCollect().length+' data pasien · '+doc.getNumberOfPages()+' halaman · A4 Landscape';
-      document.getElementById('rjtp-modal-bd').innerHTML='<iframe src="'+url+'" style="width:100%;height:600px;border:none;border-radius:4px;box-shadow:0 4px 20px rgba(45,26,36,.2)"></iframe>';
+      document.getElementById('rjtp-modal-info').textContent=rjtpCollect().length+' data pasien · '+doc.getNumberOfPages()+' hal';
+      // Android tidak support iframe PDF — tampilkan tabel HTML
+      const isAndroid = navigator.userAgent.toLowerCase().indexOf('android') >= 0;
+      if (isAndroid) {
+        document.getElementById('rjtp-modal-bd').innerHTML = rjtpBuildHTML(desa, bulanNum, tahun);
+      } else {
+        const url = URL.createObjectURL(doc.output('blob'));
+        document.getElementById('rjtp-modal-bd').innerHTML = '<iframe src="'+url+'" style="width:100%;height:600px;border:none"></iframe>';
+      }
       document.getElementById('rjtp-modal-ov').classList.add('show');
       rjtpSetProgress(100);
     }catch(e){console.error(e);showAlert('al-rjtp','Gagal membuat pratinjau: '+e.message,'e');}
     rjtpHideProgress();btn.textContent='👁 Pratinjau PDF';btn.disabled=false;
   },80);
+}
+
+function rjtpBuildHTML(desa, bulanNum, tahun) {
+  const rows = rjtpCollect();
+  const bn   = RJTP_BULAN_UP[bulanNum];
+  let h = '<div style="font-family:DM Sans,sans-serif;font-size:12px;padding:8px">'
+    + '<div style="text-align:center;margin-bottom:10px">'
+    + '<div style="font-weight:700;font-size:14px">LAPORAN RAWAT JALAN TINGKAT PERTAMA (RJTP)</div>'
+    + '<div>Desa/Kelurahan: <b>' + desa + '</b> &nbsp;|&nbsp; Bulan: <b>' + bn + ' ' + tahun + '</b></div>'
+    + '</div>'
+    + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'
+    + '<thead><tr style="background:#FEF0F8">'
+    + ['No','Tgl','No BPJS/NIK','Nama','Umur','JK','BB','TB','LP','TD','N','S','P','CHOL','AU','GDA','Diagnosa/Keluhan','Tindakan/Obat']
+      .map(c => '<th style="border:1px solid #ddd;padding:4px 5px;text-align:center;white-space:nowrap">' + c + '</th>')
+      .join('')
+    + '</tr></thead><tbody>';
+
+  rows.forEach((r, i) => {
+    const tindakanObat = formatTindakanObat(r.tindakan, r.jenisObat, r.obat, r.obatPuskesmas).replace(/\n/g, '<br>');
+    h += '<tr style="' + (i%2===0?'':'background:#fafafa') + '">'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (i+1) + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;white-space:nowrap">' + (r.tgl||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;font-size:10px">' + (r.noBpjsNik||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;font-weight:600">' + (r.nama||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.umur||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.jk||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.bb||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.tb||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.lp||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.td||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.n||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.s||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.p||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.chol||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.au||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px;text-align:center">' + (r.gda||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px">' + (r.diagnosa||'-') + '</td>'
+      + '<td style="border:1px solid #ddd;padding:3px 5px">' + (tindakanObat||'-') + '</td>'
+      + '</tr>';
+  });
+
+  h += '</tbody></table></div>'
+    + '<div style="text-align:center;margin-top:12px">'
+    + '<button onclick="rjtpDownloadPDF()" style="padding:10px 20px;background:#C0426E;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">⬇ Unduh PDF</button>'
+    + '</div></div>';
+  return h;
 }
 
 function rjtpDownloadPDF(){
