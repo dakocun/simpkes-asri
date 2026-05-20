@@ -1,0 +1,3992 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIMPKES — Ners Asri Cantik</title>
+<meta name="theme-color" content="#C0426E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SIMPKES Asri">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ===================== RESET & BASE ===================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #FFF6FA;
+  color: #2D1A24;
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ===================== LOADING ===================== */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#loading-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: linear-gradient(135deg, #C0426E, #E890BB);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+.loader-ring {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+#loading-screen p { color: white; font-size: 14px; font-weight: 500; }
+
+/* ===================== LOGIN ===================== */
+#login-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: linear-gradient(135deg, #C0426E 0%, #D9608E 40%, #E890BB 75%, #F4B3D2 100%);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.login-box {
+  background: white;
+  border-radius: 24px;
+  padding: 32px 28px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(150,30,80,0.35);
+}
+.login-logo {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(192,66,110,0.2);
+  box-shadow: 0 4px 16px rgba(192,66,110,0.2);
+}
+.login-logo img { width: 100%; height: 100%; object-fit: cover; }
+.login-simp {
+  font-size: 11px;
+  font-weight: 500;
+  color: #A07A8E;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.login-nama {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #C0426E;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+.login-sub { font-size: 12px; color: #A07A8E; margin-bottom: 24px; }
+.login-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid rgba(192,66,110,0.25);
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: 'DM Sans', sans-serif;
+  color: #2D1A24;
+  text-align: center;
+  letter-spacing: 3px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 10px;
+}
+.login-input:focus {
+  border-color: #C0426E;
+  box-shadow: 0 0 0 3px rgba(192,66,110,0.12);
+}
+.login-err {
+  display: none;
+  background: #FDECEC;
+  color: #A32D2D;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.login-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #C0426E, #E890BB);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.2s;
+}
+.login-btn:hover { opacity: 0.9; }
+
+/* ===================== HEADER ===================== */
+.header {
+  background: linear-gradient(135deg, #C0426E 0%, #D9608E 35%, #E890BB 70%, #F4B3D2 100%);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(180,50,100,0.3);
+  overflow: hidden;
+}
+.header-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 8% 65%, rgba(255,255,255,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 88% 15%, rgba(255,255,255,0.14) 0%, transparent 45%);
+}
+.header-deco::before {
+  content: '';
+  position: absolute;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.12);
+  top: -55px; right: 70px;
+}
+.header-deco::after {
+  content: '';
+  position: absolute;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.1);
+  top: -18px; right: 22px;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 20px 10px;
+  position: relative;
+}
+.header-logo {
+  width: 72px; height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid rgba(255,255,255,0.65);
+  box-shadow: 0 2px 12px rgba(180,50,100,0.25);
+}
+.header-logo img { width: 100%; height: 100%; object-fit: cover; }
+.header-simp {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.header-nama {
+  font-family: 'Playfair Display', serif;
+  font-size: 21px;
+  font-weight: 700;
+  color: white;
+  font-style: italic;
+  text-shadow: 0 2px 8px rgba(150,30,80,0.35);
+  line-height: 1.2;
+}
+.header-date {
+  margin-left: auto;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 20px;
+  padding: 4px 13px;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ===================== NAV ===================== */
+.nav {
+  display: flex;
+  padding: 4px 14px 0;
+  overflow-x: auto;
+  gap: 2px;
+  background: rgba(0,0,0,0.1);
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn {
+  padding: 9px 14px;
+  color: rgba(255,255,255,0.62);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 3px solid transparent;
+  transition: all 0.18s;
+  font-family: 'DM Sans', sans-serif;
+  white-space: nowrap;
+}
+.nav-btn:hover:not(.active) {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+.nav-btn.active {
+  color: white;
+  background: rgba(255,255,255,0.18);
+  border-bottom-color: white;
+  font-weight: 600;
+}
+
+/* ===================== CONTENT ===================== */
+.content { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+
+/* ===================== PAGES ===================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.2s ease; }
+
+/* Placeholder halaman belum dibuat */
+.coming-soon {
+  background: white;
+  border: 1px solid rgba(232,144,187,0.22);
+  border-radius: 18px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #A07A8E;
+}
+.coming-soon .cs-icon { font-size: 38px; margin-bottom: 10px; opacity: 0.45; }
+.coming-soon p { font-size: 13px; }
+
+/* ===================== SHARED COMPONENTS ===================== */
+
+/* Card */
+.card {
+  background: white;
+  border: 1px solid rgba(232,144,187,0.22);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(214,88,138,0.08);
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #A07A8E;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+}
+
+/* Alert */
+.alert {
+  display: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  border-left: 3px solid;
+}
+.alert.show { display: block; }
+.alert-s { background: #EAF3DE; color: #3B6D11; border-color: #639922; }
+.alert-e { background: #FDECEC; color: #A32D2D; border-color: #E24B4A; }
+
+/* Warning banner */
+.warn-banner { border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; }
+.warn-banner.exp  { background: #FDECEC; border: 1px solid #E24B4A; }
+.warn-banner.warn { background: #FEF3CD; border: 1px solid #F6C942; }
+.warn-title { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.warn-banner.exp  .warn-title { color: #A32D2D; }
+.warn-banner.warn .warn-title { color: #854F0B; }
+.warn-item { font-size: 12px; padding: 1px 0; }
+.warn-banner.exp  .warn-item { color: #7A1A1A; }
+.warn-banner.warn .warn-item { color: #5A4000; }
+
+/* Form fields */
+.fr { margin-bottom: 12px; }
+.fr label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #A07A8E;
+  margin-bottom: 4px;
+}
+.fr input, .fr select, .fr textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid rgba(232,144,187,0.38);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: #2D1A24;
+  background: white;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fr input:focus, .fr select:focus, .fr textarea:focus {
+  border-color: #E07AAA;
+  box-shadow: 0 0 0 3px rgba(240,168,204,0.18);
+}
+.fr input[readonly] { background: #FEF0F8; color: #C0426E; cursor: default; }
+
+/* Grid */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid rgba(232,144,187,0.38);
+  background: white;
+  color: #2D1A24;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+.btn:hover { background: #FEF0F8; }
+.btn-p { background: #C0426E; color: white; border-color: #C0426E; box-shadow: 0 2px 8px rgba(192,66,110,0.28); }
+.btn-p:hover { background: #D9608E; }
+.btn-d { background: #A32D2D; color: white; border-color: #A32D2D; }
+.btn-d:hover { background: #7A1A1A; }
+.btn-o { background: transparent; color: #C0426E; border-color: #C0426E; }
+.btn-o:hover { background: #FEF0F8; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-xs { padding: 3px 9px; font-size: 11px; border-radius: 6px; }
+
+/* Flex helpers */
+.fe { display: flex; justify-content: flex-end; gap: 8px; }
+.fb { display: flex; justify-content: space-between; align-items: center; }
+.fg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Divider */
+.divider { height: 1px; background: rgba(232,144,187,0.22); margin: 14px 0; }
+
+/* Table */
+.tw { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left;
+  padding: 8px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #A07A8E;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(232,144,187,0.22);
+  background: #FFF6FA;
+  white-space: nowrap;
+}
+td {
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(232,144,187,0.15);
+  color: #2D1A24;
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #FEF0F8; }
+
+/* Badge */
+.badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.bg-green  { background: #EAF3DE; color: #3B6D11; }
+.bg-red    { background: #FCEBEB; color: #A32D2D; }
+.bg-amber  { background: #FAEEDA; color: #854F0B; }
+.bg-pink   { background: #FEF0F8; color: #C0426E; }
+.bg-gray   { background: #F1EFE8; color: #5F5E5A; }
+.bg-blue   { background: #E3F0FF; color: #1565C0; }
+
+/* Empty state */
+.empty { text-align: center; padding: 32px 16px; color: #A07A8E; }
+.empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.35; }
+.empty p { font-size: 13px; }
+
+/* Standalone search input */
+.search-input {
+  padding: 7px 11px;
+  border: 1px solid rgba(232,144,187,0.38);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: #2D1A24;
+  background: white;
+  outline: none;
+}
+.search-input:focus { border-color: #E07AAA; }
+
+/* ===================== LAYANAN PASIEN ===================== */
+.radio-lbl {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #A07A8E;
+  background: white;
+  transition: all 0.15s;
+  margin: 0;
+  user-select: none;
+}
+input[type=radio]:checked + .radio-lbl {
+  background: #C0426E;
+  color: white;
+}
+.radio-lbl:hover { background: #FEF0F8; }
+input[type=radio]:checked + .radio-lbl:hover { background: #C0426E; }
+
+.pill-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid rgba(232,144,187,0.38);
+  background: white;
+  color: #A07A8E;
+  font-family: "DM Sans", sans-serif;
+  transition: all 0.15s;
+}
+.pill-btn:hover { border-color: #C0426E; color: #C0426E; }
+.pill-btn.active { background: #C0426E; color: white; border-color: #C0426E; }
+
+.obat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  margin-bottom: 4px;
+  background: #FFF6FA;
+  border: 1px solid rgba(232,144,187,0.22);
+  border-radius: 8px;
+}
+.obat-item input[type=checkbox] { width: 15px; height: 15px; accent-color: #C0426E; flex-shrink: 0; }
+.obat-item label { flex: 1; font-size: 13px; cursor: pointer; }
+.obat-item .stok-info { font-size: 11px; color: #A07A8E; }
+.obat-qty { width: 75px; display: none; }
+
+.diagnosa-tag {
+  background: #FEF0F8;
+  color: #C0426E;
+  border: 1px solid rgba(192,66,110,0.2);
+  border-radius: 20px;
+  padding: 3px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: all 0.15s;
+}
+.diagnosa-tag:hover { background: #F4B3D2; }
+.diagnosa-tag.active { background: #C0426E; color: white; }
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 600px) {
+  .content { padding: 12px; }
+  .header-top { padding: 11px 14px 8px; }
+  .header-nama { font-size: 18px; }
+  .header-date { display: none; }
+  .g2, .g3, .g4 { grid-template-columns: 1fr; }
+}
+
+/* ===================== RJTP ===================== */
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.btn-teal{background:#0891b2;color:white;border-color:#0891b2}
+.btn-teal:hover{background:#0e7490}
+.rjtp-info-bar{background:linear-gradient(135deg,rgba(192,66,110,.06),rgba(232,144,187,.04));border:1px solid rgba(192,66,110,.2);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#A07A8E}
+.info-dot{width:8px;height:8px;background:#C0426E;border-radius:50%;flex-shrink:0;animation:pulse 2s infinite}
+.rjtp-twrap{overflow-x:auto;border-radius:10px;border:1px solid rgba(232,144,187,.22)}
+.rjtp-twrap::-webkit-scrollbar{height:5px}
+.rjtp-twrap::-webkit-scrollbar-track{background:#FFF6FA}
+.rjtp-twrap::-webkit-scrollbar-thumb{background:rgba(192,66,110,.3);border-radius:3px}
+table.rjtp-tbl{width:100%;border-collapse:collapse;min-width:1380px;font-size:12px}
+table.rjtp-tbl thead th{background:#C0426E;color:white;padding:7px 5px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,.15)}
+table.rjtp-tbl thead th:last-child{border-right:none}
+table.rjtp-tbl thead th.pfg{background:#A03060}
+table.rjtp-tbl thead tr:first-child th{border-bottom:1px solid rgba(255,255,255,.2)}
+table.rjtp-tbl tbody tr{border-bottom:1px solid rgba(232,144,187,.15)}
+table.rjtp-tbl tbody tr:nth-child(even) td{background:#FFF6FA}
+table.rjtp-tbl tbody tr:hover td{background:#FEF0F8}
+table.rjtp-tbl tbody td{padding:3px 4px;text-align:center;vertical-align:middle}
+table.rjtp-tbl tbody tr.auto-row td{background:rgba(192,66,110,.05)!important}
+table.rjtp-tbl tbody tr.auto-row:hover td{background:rgba(192,66,110,.1)!important}
+.rci{font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;border:1px solid rgba(232,144,187,.35);border-radius:4px;background:white;color:#2D1A24;width:100%;text-align:center;outline:none;transition:border-color .15s,box-shadow .15s}
+.rci:hover{border-color:#E890BB}
+.rci:focus{border-color:#C0426E;box-shadow:0 0 0 2px rgba(192,66,110,.12)}
+.rci.left{text-align:left}
+.rci.sel{-webkit-appearance:none;appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 12 12'%3E%3Cpath fill='%23C0426E' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;padding-right:14px}
+.rci-ta{font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 5px;border:1px solid rgba(232,144,187,.35);border-radius:4px;background:white;color:#2D1A24;width:100%;text-align:left;outline:none;resize:vertical;min-height:44px;line-height:1.4;transition:border-color .15s,box-shadow .15s}
+.rci-ta:hover{border-color:#E890BB}
+.rci-ta:focus{border-color:#C0426E;box-shadow:0 0 0 2px rgba(192,66,110,.12)}
+.td-spl{display:flex;align-items:center;gap:2px}
+.td-spl .rci{flex:1}
+.td-spl span{font-size:10px;color:#A07A8E;flex-shrink:0}
+.rdel-btn{width:22px;height:22px;border:1px solid #fca5a5;background:#fef2f2;color:#A32D2D;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;margin:auto;transition:background .1s;flex-shrink:0}
+.rdel-btn:hover{background:#fee2e2}
+.rjtp-gen-bar{background:white;border:1px solid rgba(232,144,187,.22);border-radius:16px;padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rjtp-gen-desc strong{display:block;font-size:14px;font-weight:600;color:#2D1A24}
+.rjtp-gen-desc span{font-size:12px;color:#A07A8E}
+.rjtp-pw{display:none;height:3px;background:rgba(232,144,187,.22);border-radius:3px;overflow:hidden;margin-top:10px;width:100%}
+.rjtp-pw.show{display:block}
+.rjtp-pb{height:100%;background:#C0426E;border-radius:3px;transition:width .3s ease}
+.rc-no{width:36px;min-width:36px}.rc-tgl{width:120px;min-width:120px}.rc-id{width:140px;min-width:140px}
+.rc-nm{width:130px;min-width:130px}.rc-sm{width:52px;min-width:52px}.rc-jk{width:44px;min-width:44px}
+.rc-td{width:115px;min-width:115px}.rc-tx{width:170px;min-width:170px}.rc-kj{width:80px;min-width:80px}.rc-ac{width:32px;min-width:32px}
+.rmod-ov{display:none;position:fixed;inset:0;background:rgba(45,26,36,.7);z-index:9100;align-items:center;justify-content:center;padding:20px}
+.rmod-ov.show{display:flex}
+.rmod{background:white;border-radius:20px;width:100%;max-width:980px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 60px rgba(150,30,80,.3)}
+.rmod-hd{padding:16px 20px;border-bottom:1px solid rgba(232,144,187,.22);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rmod-hd h3{font-size:14px;font-weight:600;color:#2D1A24}
+.rmod-bd{flex:1;overflow:auto;padding:16px;background:#f0e8ef;display:flex;flex-direction:column;align-items:center;gap:10px}
+.rmod-ft{padding:14px 20px;border-top:1px solid rgba(232,144,187,.22);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:10px}
+.rmod-ft span{font-size:12px;color:#A07A8E}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loader-ring"></div>
+  <p>Memuat data...</p>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="icon-192.png" alt="SIMPKES"
+        onerror="this.parentElement.innerHTML='<div style=&quot;width:100%;height:100%;background:linear-gradient(135deg,#C0426E,#E890BB);display:flex;align-items:center;justify-content:center;font-size:28px&quot;>🏥</div>'">
+    </div>
+    <div class="login-simp">Sistem Informasi Manajemen Pelayanan Kesehatan</div>
+    <div class="login-nama">Ners Asri Cantik</div>
+    <div class="login-sub">Masukkan password untuk melanjutkan</div>
+    <input type="password" id="login-pass" class="login-input" placeholder="••••••••">
+    <div id="login-err" class="login-err">❌ Password salah. Coba lagi.</div>
+    <button id="login-btn" class="login-btn">Masuk →</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-deco"></div>
+  <div class="header-top">
+    <div class="header-logo">
+      <img src="icon-192.png" alt="SIMPKES"
+        onerror="this.parentElement.innerHTML='<div style=&quot;width:100%;height:100%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px&quot;>🏥</div>'">
+    </div>
+    <div class="header-titles">
+      <div class="header-simp">Sistem Informasi Manajemen Pelayanan Kesehatan</div>
+      <div class="header-nama">Ners Asri Cantik</div>
+    </div>
+    <div class="header-date" id="header-date">—</div>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn" onclick="go('masuk')">📥 Obat Masuk</button>
+    <button class="nav-btn" onclick="go('stok')">📦 Stok Obat</button>
+    <button class="nav-btn" onclick="go('buang')">🗑 Buang/Expired</button>
+    <button class="nav-btn" onclick="go('layanan')">🏥 Layanan Pasien</button>
+    <button class="nav-btn" onclick="go('reklayanan')">📑 Rekap Layanan</button>
+    <button class="nav-btn" onclick="go('rekap')">📋 Rekap Obat Keluar</button>
+    <button class="nav-btn" onclick="go('rjtp')">📄 Lap. RJTP</button>
+    <button class="nav-btn" onclick="go('laporan')">📊 Rekap Bulanan</button>
+    <button class="nav-btn" onclick="go('shift')">🗓 Jadwal Shift</button>
+  </nav>
+</header>
+
+<!-- CONTENT -->
+<main class="content">
+
+  <div class="page" id="page-masuk">
+
+    <!-- Peringatan expired -->
+    <div id="warn-masuk"></div>
+
+    <!-- Alert -->
+    <div id="al-masuk" class="alert"></div>
+
+    <!-- Form tambah obat -->
+    <div class="card">
+      <div class="card-title">💊 Tambah Obat Masuk ke Stok</div>
+      <div class="g4">
+        <div class="fr">
+          <label>Nama Obat</label>
+          <input type="text" id="m-nama" placeholder="Contoh: Paracetamol 500mg"
+            onkeydown="if(event.key==='Enter') document.getElementById('m-jml').focus()">
+        </div>
+        <div class="fr">
+          <label>Jumlah</label>
+          <input type="number" id="m-jml" placeholder="0" min="1"
+            onkeydown="if(event.key==='Enter') tambahObatMasuk()">
+        </div>
+        <div class="fr">
+          <label>Tanggal Masuk</label>
+          <input type="date" id="m-tgl">
+        </div>
+        <div class="fr">
+          <label>Tanggal Expired</label>
+          <input type="date" id="m-exp">
+        </div>
+      </div>
+      <div class="fe">
+        <button class="btn btn-p" onclick="tambahObatMasuk()">+ Tambah ke Stok</button>
+      </div>
+    </div>
+
+    <!-- Obat masuk hari ini -->
+    <div class="card">
+      <div class="card-title">📋 Obat Masuk Hari Ini</div>
+      <div id="masuk-hari-ini"></div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-stok">
+
+    <!-- Stat cards -->
+    <div id="stok-stats" class="g4" style="margin-bottom:16px"></div>
+
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">Daftar Stok Obat</div>
+        <div class="fg">
+          <input class="search-input" type="text" placeholder="🔍 Cari obat..."
+            oninput="renderStok(this.value)" style="width:180px">
+          <button class="btn btn-p btn-sm" onclick="dlStok()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="stok-wrap"></div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-reklayanan">
+
+    <div id="al-reklayanan" class="alert"></div>
+
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">📑 Rekap Layanan Pasien</div>
+        <div class="fg">
+          <select id="rl-bln" onchange="renderRekLayanan()" style="width:140px"></select>
+          <select id="rl-thn" onchange="renderRekLayanan()" style="width:100px"></select>
+          <input class="search-input" type="text" id="rl-search" placeholder="🔍 Cari nama..."
+            oninput="renderRekLayanan()" style="width:160px">
+          <button class="btn btn-p btn-sm" onclick="dlRekLayanan()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="reklayanan-wrap"></div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-rekap">
+
+    <!-- Data Baru dari Layanan Pasien -->
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">📋 Rekap Obat Keluar</div>
+        <div class="fg">
+          <select id="rekap-bln" onchange="renderRekap()" style="width:130px"></select>
+          <select id="rekap-thn" onchange="renderRekap()" style="width:95px"></select>
+          <input class="search-input" type="text" id="search-rekap" placeholder="🔍 Cari nama pasien..."
+            oninput="renderRekap()" style="width:160px">
+          <button class="btn btn-p btn-sm" onclick="dlRekap()">⬇ Unduh XLSX</button>
+        </div>
+      </div>
+      <div id="rekap-wrap"></div>
+    </div>
+
+    <div id="al-rekap" class="alert"></div>
+
+    <!-- Data Lama dari Sistem Lama -->
+    <div class="card">
+      <div class="card-title">🗂 Data Lama — Rekap Keluar Sistem Sebelumnya</div>
+      <div class="fg" style="margin-bottom:14px">
+        <label style="margin:0;font-size:12px;color:#A07A8E">Filter Bulan:</label>
+        <select id="lama-bln" onchange="renderRekapLama()" style="width:140px"></select>
+        <select id="lama-thn" onchange="renderRekapLama()" style="width:100px"></select>
+        <button class="btn btn-sm btn-o btn-sm" onclick="renderRekapLama(true)">Tampilkan Semua</button>
+      </div>
+      <div id="rekap-lama-wrap"></div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-buang">
+
+    <div id="al-buang" class="alert"></div>
+
+    <div class="card">
+      <div class="card-title">🗑 Catat Pembuangan / Pemusnahan Obat</div>
+      <div class="g3">
+        <div class="fr">
+          <label>Pilih Batch Obat</label>
+          <select id="b-sel"><option value="">-- Pilih batch --</option></select>
+        </div>
+        <div class="fr">
+          <label>Jumlah Dibuang</label>
+          <input type="number" id="b-jml" placeholder="0" min="1">
+        </div>
+        <div class="fr">
+          <label>Alasan</label>
+          <select id="b-als">
+            <option value="expired">Expired / Kadaluarsa</option>
+            <option value="rusak">Rusak / Cacat</option>
+            <option value="hilang">Hilang</option>
+            <option value="lainnya">Lainnya</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <label>Catatan Tambahan (opsional)</label>
+        <input type="text" id="b-cat" placeholder="Keterangan tambahan...">
+      </div>
+      <div class="fe">
+        <button class="btn btn-d" onclick="simpanBuang()">Catat Pembuangan</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="fb" style="margin-bottom:14px">
+        <div class="card-title" style="margin:0">Riwayat Pembuangan</div>
+        <button class="btn btn-p btn-sm" onclick="dlBuang()">⬇ Unduh XLSX</button>
+      </div>
+      <div id="buang-wrap"></div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-laporan">
+    <div id="al-laporan" class="alert"></div>
+    <div class="card">
+      <div class="card-title">📊 Rekap Bulanan Stok Obat</div>
+      <div class="fg" style="margin-bottom:16px">
+        <label style="margin:0;white-space:nowrap;font-size:12px;color:#A07A8E">Pilih Bulan:</label>
+        <select id="lapbln" onchange="renderLap()" style="width:145px"></select>
+        <select id="lapthn" onchange="renderLap()" style="width:105px"></select>
+        <button class="btn btn-p btn-sm" onclick="dlLap()">⬇ Unduh XLSX</button>
+      </div>
+      <div id="lapwrap"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-layanan">
+
+    <div id="al-layanan" class="alert"></div>
+
+    <!-- FORM ENTRI -->
+    <div class="card">
+      <div class="card-title">🏥 Entri Layanan Pasien</div>
+
+      <!-- Langkah 1: Jenis Kunjungan -->
+      <div class="fr">
+        <label>Jenis Kunjungan</label>
+        <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden">
+          <input type="radio" name="jns-kunjungan" id="jk-baru" value="baru" style="display:none" checked>
+          <label for="jk-baru" class="radio-lbl">🆕 Kunjungan Baru</label>
+          <input type="radio" name="jns-kunjungan" id="jk-lama" value="lama" style="display:none">
+          <label for="jk-lama" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">🔄 Kunjungan Lama</label>
+        </div>
+      </div>
+
+      <!-- Langkah 2: Jenis Layanan -->
+      <div class="fr">
+        <label>Jenis Layanan</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="pill-btn" onclick="pilihLayanan(this,'kunjungan-rumah')">🏠 Kunjungan Rumah</button>
+          <button class="pill-btn" onclick="pilihLayanan(this,'posyandu')">👶 Posyandu</button>
+          <button class="pill-btn" onclick="pilihLayanan(this,'kantor-desa')">🏛 Kantor Desa</button>
+        </div>
+      </div>
+
+      <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
+
+      <!-- Langkah 3: Data Pasien -->
+      <div class="card-title">👤 Data Pasien</div>
+
+      <!-- Search pasien lama -->
+      <div id="wrap-search-pasien" style="display:none;margin-bottom:12px">
+        <div class="fr" style="margin-bottom:0;position:relative">
+          <label>Cari Nama Pasien</label>
+          <input type="text" id="search-pasien" placeholder="Ketik nama pasien..."
+            oninput="this.value=this.value.toUpperCase();cariPasien(this.value)" autocomplete="off">
+          <div id="autocomplete-list" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid rgba(232,144,187,0.38);border-radius:8px;box-shadow:0 4px 16px rgba(192,66,110,0.15);z-index:200;max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <!-- Tipe identitas + nomor -->
+        <div class="fr">
+          <label>Tipe Identitas</label>
+          <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden;margin-bottom:8px">
+            <input type="radio" name="tipe-id" id="ti-bpjs" value="bpjs" style="display:none" checked>
+            <label for="ti-bpjs" class="radio-lbl">BPJS</label>
+            <input type="radio" name="tipe-id" id="ti-nik" value="nik" style="display:none">
+            <label for="ti-nik" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">NIK</label>
+          </div>
+          <input type="text" id="lp-noid" placeholder="Nomor BPJS..." oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="fr"><label>Nama Lengkap</label><input type="text" id="lp-nama" placeholder="Nama lengkap pasien" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fr">
+          <label>Jenis Kelamin</label>
+          <select id="lp-jk">
+            <option value="">-- Pilih --</option>
+            <option value="L">Laki-laki</option>
+            <option value="P">Perempuan</option>
+          </select>
+        </div>
+        <div class="fr"><label>Tanggal Lahir</label><input type="date" id="lp-tgllahir" oninput="onTglLahirChange()"></div>
+        <div class="fr"><label>Umur (otomatis)</label><input type="text" id="lp-umur" readonly placeholder="Otomatis dari tgl lahir"></div>
+        <div class="fr">
+          <label>Desa / Kelurahan</label>
+          <select id="lp-desa">
+            <option value="">-- Pilih --</option>
+            <optgroup label="Kelurahan">
+              <option value="HORODOPI">HORODOPI</option>
+              <option value="INEBENGGI">INEBENGGI</option>
+              <option value="WOITOMBO">WOITOMBO</option>
+            </optgroup>
+            <optgroup label="Desa">
+              <option value="WATUPUTE">WATUPUTE</option>
+              <option value="LAPANGISI">LAPANGISI</option>
+              <option value="SABI-SABILA">SABI-SABILA</option>
+              <option value="LAMBOTUA">LAMBOTUA</option>
+              <option value="PUUOSU">PUUOSU</option>
+              <option value="NELOMBU">NELOMBU</option>
+              <option value="ULU MOWEWE">ULU MOWEWE</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fr"><label>Tanggal Layanan</label><input type="date" id="lp-tgl"></div>
+      </div>
+
+      <!-- Tombol simpan perubahan data pasien (muncul jika ada perubahan saat kunjungan lama) -->
+      <div id="wrap-simpan-pasien" style="display:none;margin-bottom:12px">
+        <button class="btn btn-o btn-sm" onclick="simpanPerubahanPasien()">💾 Simpan Perubahan Data Pasien</button>
+      </div>
+
+      <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
+
+      <!-- Langkah 4: Pemeriksaan -->
+      <div class="card-title">🩺 Pemeriksaan Fisik</div>
+      <div class="g4">
+        <div class="fr"><label>BB (kg)</label><input type="number" id="pm-bb" placeholder="0" step="0.1"></div>
+        <div class="fr"><label>TB (cm)</label><input type="number" id="pm-tb" placeholder="0"></div>
+        <div class="fr"><label>LP (cm)</label><input type="number" id="pm-lp" placeholder="0"></div>
+        <div class="fr"><label>TD (mmHg)</label><input type="text" id="pm-td" placeholder="120/80"></div>
+        <div class="fr"><label>Nadi (/mnt)</label><input type="number" id="pm-n" placeholder="0"></div>
+        <div class="fr"><label>Suhu (°C)</label><input type="number" id="pm-s" placeholder="0" step="0.1"></div>
+        <div class="fr"><label>Pernapasan (/mnt)</label><input type="number" id="pm-p" placeholder="0"></div>
+        <div class="fr"><label>CHOL (mg/dL)</label><input type="number" id="pm-chol" placeholder="0"></div>
+        <div class="fr"><label>AU (mg/dL)</label><input type="number" id="pm-au" placeholder="0"></div>
+        <div class="fr"><label>GDA (mg/dL)</label><input type="number" id="pm-gda" placeholder="0"></div>
+      </div>
+
+      <div style="height:1px;background:rgba(232,144,187,0.22);margin:14px 0"></div>
+
+      <!-- Klinis -->
+      <div class="card-title">📋 Klinis</div>
+      <div class="g2">
+        <div class="fr">
+          <label>Diagnosa / Keluhan</label>
+          <input type="text" id="lp-diagnosa" placeholder="Contoh: Hipertensi, Demam..." oninput="this.value=this.value.toUpperCase()">
+          <div id="diagnosa-tags" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px"></div>
+        </div>
+        <div class="fr"><label>Tindakan</label><input type="text" id="lp-tindakan" placeholder="Contoh: Cek tensi, perawatan luka..." oninput="this.value=this.value.toUpperCase()"></div>
+      </div>
+
+      <!-- Obat -->
+      <div class="fr">
+        <label>Obat</label>
+        <div style="display:flex;gap:0;border:1px solid rgba(232,144,187,0.38);border-radius:8px;overflow:hidden;max-width:420px">
+          <input type="radio" name="jns-obat" id="jo-desa" value="desa" style="display:none" checked>
+          <label for="jo-desa" class="radio-lbl">💊 Obat Desa</label>
+          <input type="radio" name="jns-obat" id="jo-pusk" value="puskesmas" style="display:none">
+          <label for="jo-pusk" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">🏥 Obat Puskesmas</label>
+          <input type="radio" name="jns-obat" id="jo-kosong" value="kosong" style="display:none">
+          <label for="jo-kosong" class="radio-lbl" style="border-left:1px solid rgba(232,144,187,0.38)">🚫 Tidak Ada</label>
+        </div>
+      </div>
+
+      <!-- Obat Desa -->
+      <div id="wrap-obat-desa">
+        <div style="margin-bottom:8px">
+          <input class="search-input" type="text" id="search-obat-desa"
+            placeholder="🔍 Cari nama obat..."
+            oninput="filterObatDesa(this.value)"
+            style="width:100%;max-width:320px">
+        </div>
+        <div id="pilih-obat-desa"></div>
+      </div>
+
+      <!-- Obat Puskesmas -->
+      <div id="wrap-obat-pusk" style="display:none">
+        <div class="fr">
+          <label>Tulis Obat dari Puskesmas</label>
+          <textarea id="obat-pusk-input" rows="3" placeholder="Contoh: Amlodipin 5mg 1x1, Metformin 500mg 2x1..." oninput="this.value=this.value.toUpperCase()"></textarea>
+        </div>
+      </div>
+
+      <div class="fr"><label>Catatan</label><input type="text" id="lp-catatan" placeholder="Catatan tambahan..." oninput="this.value=this.value.toUpperCase()"></div>
+
+      <div class="fe" style="margin-top:8px">
+        <button class="btn" onclick="resetFormLayanan()">Reset</button>
+        <button class="btn btn-p" onclick="simpanLayanan()">Simpan Layanan ✓</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="page" id="page-rjtp" style="max-width:1400px;margin:0 auto">
+    <div id="al-rjtp" class="alert"></div>
+
+    <!-- Info laporan -->
+    <div class="card">
+      <div class="card-title">📄 Informasi Laporan RJTP — UPTD Puskesmas Mowewe</div>
+      <div class="g4">
+        <div class="fr">
+          <label>Bulan</label>
+          <select id="rjtp-bulan" onchange="onRjtpParamChange()">
+            <option value="" disabled selected>-- Pilih Bulan --</option>
+            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+          </select>
+        </div>
+        <div class="fr">
+          <label>Tahun</label>
+          <input type="number" id="rjtp-tahun" min="2000" max="2099" placeholder="2025" onchange="onRjtpParamChange()">
+        </div>
+        <div class="fr">
+          <label>Nama Desa / Kelurahan</label>
+          <select id="rjtp-desa" onchange="onRjtpParamChange()">
+            <option value="" disabled selected>-- Pilih --</option>
+            <optgroup label="Kelurahan">
+              <option value="HORODOPI">HORODOPI</option>
+              <option value="INEBENGGI">INEBENGGI</option>
+              <option value="WOITOMBO">WOITOMBO</option>
+            </optgroup>
+            <optgroup label="Desa">
+              <option value="WATUPUTE">WATUPUTE</option>
+              <option value="LAPANGISI">LAPANGISI</option>
+              <option value="SABI-SABILA">SABI-SABILA</option>
+              <option value="LAMBOTUA">LAMBOTUA</option>
+              <option value="PUUOSU">PUUOSU</option>
+              <option value="NELOMBU">NELOMBU</option>
+              <option value="ULU MOWEWE">ULU MOWEWE</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fr" id="rjtp-autofill-wrap" style="display:none">
+          <label style="color:#3B6D11;font-weight:600;font-size:11px">✅ Auto-fill tersedia dari Rekap Layanan</label>
+          <button class="btn btn-p btn-sm" onclick="autoFillRjtp()" style="margin-top:6px;width:100%">🔄 Muat Data SABI-SABILA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info bar auto-fill -->
+    <div class="rjtp-info-bar" id="rjtp-info-bar" style="display:none">
+      <div class="info-dot"></div>
+      <span id="rjtp-info-text"></span>
+    </div>
+
+    <!-- Tabel data pasien -->
+    <div class="card" style="padding:14px 16px">
+      <div class="fb" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="card-title" style="margin:0">Data Pasien RJTP</div>
+          <span class="badge bg-pink" id="rjtp-row-badge">0 pasien</span>
+        </div>
+        <div class="fg">
+          <button class="btn btn-p btn-sm" onclick="rjtpAddRow()">+ Tambah Baris</button>
+          <button class="btn btn-sm" onclick="rjtpAddMultiple()">+5 Baris</button>
+          <button class="btn btn-sm" onclick="rjtpClearManual()" style="color:#854F0B;border-color:#F6C942">🗑 Hapus Manual</button>
+          <button class="btn btn-d btn-sm" onclick="rjtpClearAll()">🗑 Kosongkan Semua</button>
+        </div>
+      </div>
+      <div class="rjtp-twrap">
+        <table class="rjtp-tbl">
+          <thead>
+            <tr>
+              <th class="rc-no" rowspan="2">No</th>
+              <th class="rc-tgl" rowspan="2">Tanggal</th>
+              <th class="rc-id" rowspan="2">Nomor BPJS/NIK</th>
+              <th class="rc-nm" rowspan="2">Nama</th>
+              <th class="rc-sm" rowspan="2">Umur</th>
+              <th class="rc-jk" rowspan="2">JK</th>
+              <th class="rc-sm" rowspan="2">BB</th>
+              <th class="rc-sm" rowspan="2">TB</th>
+              <th class="rc-sm" rowspan="2">LP</th>
+              <th colspan="7" class="pfg">Pemeriksaan Fisik</th>
+              <th class="rc-tx" rowspan="2">Diagnosa/Keluhan</th>
+              <th class="rc-tx" rowspan="2">Terapi/Obat</th>
+              <th class="rc-kj" rowspan="2">Kunjungan</th>
+              <th class="rc-ac" rowspan="2"></th>
+            </tr>
+            <tr>
+              <th class="pfg rc-td">TD</th>
+              <th class="pfg rc-sm">N</th>
+              <th class="pfg rc-sm">S</th>
+              <th class="pfg rc-sm">P</th>
+              <th class="pfg rc-sm">CHOL</th>
+              <th class="pfg rc-sm">AU</th>
+              <th class="pfg rc-sm">GDA</th>
+            </tr>
+          </thead>
+          <tbody id="rjtp-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:#A07A8E" id="rjtp-hint">Pilih bulan, tahun, dan desa terlebih dahulu.</div>
+    </div>
+
+    <!-- Generate bar -->
+    <div class="rjtp-gen-bar">
+      <div class="rjtp-gen-desc">
+        <strong>Pratinjau &amp; Unduh Dokumen RJTP</strong>
+        <span>PDF landscape A4 siap cetak · XLSX untuk diedit di Excel/Spreadsheet</span>
+      </div>
+      <div class="fg">
+        <button class="btn btn-o btn-sm" id="rjtp-prev-btn" onclick="rjtpPreviewPDF()">👁 Pratinjau PDF</button>
+        <button class="btn btn-p btn-sm" id="rjtp-pdf-btn" onclick="rjtpDownloadPDF()">⬇ Unduh PDF</button>
+        <button class="btn btn-teal btn-sm" id="rjtp-xlsx-btn" onclick="rjtpDownloadXLSX()">⬇ Unduh XLSX</button>
+      </div>
+      <div class="rjtp-pw" id="rjtp-pw" style="width:100%"><div class="rjtp-pb" id="rjtp-pb" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-shift">
+  <div id="al-shift" class="alert"></div>
+
+  <!-- Header Kalender -->
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="shiftPrevMonth()" style="width:34px;height:34px;border-radius:50%;border:1px solid var(--bd2);background:var(--white);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
+        <div id="shift-month-label" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--tx);min-width:160px;text-align:center"></div>
+        <button onclick="shiftNextMonth()" style="width:34px;height:34px;border-radius:50%;border:1px solid var(--bd2);background:var(--white);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">›</button>
+      </div>
+      <button onclick="bukaModifShift()" class="btn btn-p btn-sm">⚙ Modif Shift Tgl 1</button>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px">
+      <span style="background:#FFF3CD;color:#856404;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">☀️ Siang</span>
+      <span style="background:#FFE4F0;color:#9B2D6F;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">🌅 Pagi</span>
+      <span style="background:#E8E0FF;color:#5B3DB5;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">🌙 Malam</span>
+      <span style="background:#FFE8D6;color:#8B4513;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">😴 Libur 1</span>
+      <span style="background:#E8F5E9;color:#2E7D32;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">🌿 Libur 2</span>
+    </div>
+  </div>
+
+  <!-- Kalender -->
+  <div class="card" style="padding:12px">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px">
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Min</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Sen</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Sel</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Rab</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Kam</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Jum</div>
+      <div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx3);padding:4px">Sab</div>
+    </div>
+    <div id="shift-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px"></div>
+  </div>
+  <!-- Rekap Kegiatan Bulanan -->
+  <div class="card" id="shift-rekap-wrap" style="margin-top:0"></div>
+</div>
+
+<!-- POPUP MODIF SHIFT -->
+<div id="popup-modif" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(45,26,36,0.5);align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:18px;padding:24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(150,30,80,0.3)">
+    <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--tx);margin-bottom:6px">⚙ Modif Shift Tgl 1</div>
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:16px">Pilih shift untuk tanggal 1 bulan ini, kalender akan otomatis dihitung mengikuti pola shift.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <button onclick="setShiftTgl1('Siang')" class="shift-opt-btn" style="background:#FFF3CD;color:#856404;border:2px solid transparent;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">☀️ Siang</button>
+      <button onclick="setShiftTgl1('Pagi')" class="shift-opt-btn" style="background:#FFE4F0;color:#9B2D6F;border:2px solid transparent;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🌅 Pagi</button>
+      <button onclick="setShiftTgl1('Malam')" class="shift-opt-btn" style="background:#E8E0FF;color:#5B3DB5;border:2px solid transparent;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🌙 Malam</button>
+      <button onclick="setShiftTgl1('Libur1')" class="shift-opt-btn" style="background:#FFE8D6;color:#8B4513;border:2px solid transparent;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">😴 Libur 1</button>
+      <button onclick="setShiftTgl1('Libur2')" class="shift-opt-btn" style="background:#E8F5E9;color:#2E7D32;border:2px solid transparent;border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">🌿 Libur 2</button>
+    </div>
+    <div class="fe" style="gap:8px">
+      <button class="btn btn-sm" onclick="document.getElementById('popup-modif').style.display='none'">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP CATATAN HARIAN -->
+<div id="popup-catatan" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(45,26,36,0.5);align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:18px;padding:24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(150,30,80,0.3)">
+    <div id="popup-catatan-title" style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--tx);margin-bottom:4px"></div>
+    <div id="popup-catatan-shift" style="font-size:13px;margin-bottom:12px"></div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--tx3);font-weight:500;display:block;margin-bottom:7px">📌 Kegiatan</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btn-kantordesa" onclick="toggleKegiatan('kantordesa')"
+          style="padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:1.5px solid #C0426E;background:white;color:#C0426E;transition:all .15s">
+          🏛 Kantor Desa
+        </button>
+        <button id="btn-posyandu" onclick="toggleKegiatan('posyandu')"
+          style="padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:1.5px solid #2E7D32;background:white;color:#2E7D32;transition:all .15s">
+          👶 Posyandu
+        </button>
+        <button id="btn-merujuk" onclick="toggleKegiatan('merujuk')"
+          style="padding:6px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:1.5px solid #1565C0;background:white;color:#1565C0;transition:all .15s">
+          🚑 Merujuk
+        </button>
+      </div>
+    </div>
+    <div class="fr">
+      <label>📝 Catatan / Agenda</label>
+      <textarea id="catatan-input" rows="3" placeholder="Tulis catatan untuk hari ini..."
+        style="width:100%;padding:10px;border:1.5px solid var(--bd2);border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;resize:none;outline:none;box-sizing:border-box"></textarea>
+    </div>
+    <div class="fe" style="gap:8px;margin-top:4px">
+      <button class="btn btn-sm" onclick="tutupCatatanPopup()">Batal</button>
+      <button class="btn btn-p btn-sm" onclick="simpanCatatan()">✓ Simpan</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</main>
+
+<!-- POPUP DETAIL LAYANAN -->
+<div id="popup-layanan" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(45,26,36,0.55);align-items:center;justify-content:center;padding:16px">
+  <div style="background:white;border-radius:20px;width:100%;max-width:680px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(150,30,80,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(232,144,187,0.22)">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#2D1A24" id="popup-lay-title">Detail Layanan</div>
+      <button class="btn btn-sm" onclick="tutupPopupLayanan()">✕ Tutup</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px" id="popup-lay-body"></div>
+    <div style="padding:14px 20px;border-top:1px solid rgba(232,144,187,0.22);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="tutupPopupLayanan()">Batal</button>
+      <button class="btn btn-p" onclick="editLayananMode==='obat'?simpanEditObatKeluar():simpanEditLayanan()">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== FIREBASE =====================
+const firebaseConfig = {
+  apiKey: "AIzaSyDtOehm-Cp12n1Y3K_GhJj40buerVp9c_w",
+  authDomain: "stok-obat-asri-cantik.firebaseapp.com",
+  projectId: "stok-obat-asri-cantik",
+  storageBucket: "stok-obat-asri-cantik.firebasestorage.app",
+  messagingSenderId: "847897389700",
+  appId: "1:847897389700:web:cc6e2bf3633f67c1dfb0d1"
+};
+firebase.initializeApp(firebaseConfig);
+const db  = firebase.firestore();
+const COL = 'stok-obat-asri'; // pakai collection yang sama dengan sistem lama
+
+// Simpan data ke Firestore
+async function sv(name, val) {
+  try {
+    await db.collection(COL).doc('shared__' + name).set({
+      d: JSON.stringify(val),
+      t: Date.now()
+    });
+  } catch (e) {
+    console.error('Gagal simpan [' + name + ']:', e.message);
+  }
+}
+
+// Load data dari Firestore
+async function ld(name) {
+  try {
+    const doc = await db.collection(COL).doc('shared__' + name).get();
+    if (doc.exists) {
+      const raw = doc.data();
+      return JSON.parse(raw.d || raw.data || '[]');
+    }
+  } catch (e) {
+    console.error('Gagal load [' + name + ']:', e.message);
+  }
+  return [];
+}
+
+// ===================== KONSTANTA =====================
+const PASSWORD = 'SenyumSayang';
+const BULAN    = ['Januari','Februari','Maret','April','Mei','Juni',
+                  'Juli','Agustus','September','Oktober','November','Desember'];
+const HARI     = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const PAGES    = ['masuk','stok','buang','layanan','reklayanan','rekap','rjtp','laporan','shift'];
+
+// ===================== STATE GLOBAL =====================
+let batches     = [];
+let layananData = [];
+let pasienData  = [];
+let buangData   = [];
+let shiftData   = {};
+let keluarLama  = []; // data dari shared__keluar sistem lama (read-only)
+
+// ===================== HELPERS =====================
+function today() {
+  const d = new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
+
+function formatTgl(s) {
+  if (!s || s === '-') return '-';
+  const [y, m, d] = s.split('-');
+  return d + '/' + m + '/' + y;
+}
+
+function hitungUmur(tglLahir) {
+  if (!tglLahir) return '';
+  const lahir = new Date(tglLahir);
+  const now   = new Date();
+  let umur    = now.getFullYear() - lahir.getFullYear();
+  const bln   = now.getMonth() - lahir.getMonth();
+  if (bln < 0 || (bln === 0 && now.getDate() < lahir.getDate())) umur--;
+  return umur + ' tahun';
+}
+
+function genId() {
+  return Math.random().toString(36).slice(2, 10)
+       + Math.random().toString(36).slice(2, 6);
+}
+
+function toUpper(s) {
+  return s ? s.toUpperCase() : s;
+}
+
+// ===================== NAVIGASI =====================
+function go(name) {
+  PAGES.forEach(p => document.getElementById('page-' + p).classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  document.getElementById('page-' + name).classList.add('active');
+  const idx = PAGES.indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+
+  // Render halaman yang dibuka
+  if (name === 'masuk') { renderWarnMasuk(); renderMasukHariIni(); }
+  if (name === 'stok')  { renderStok(); }
+  if (name === 'buang')   { renderBuangSel(); renderBuangRiwayat(); }
+  if (name === 'layanan')    { initFormLayanan(); }
+  if (name === 'reklayanan') { initRekLayanan(); }
+  if (name === 'rekap')   { initRekap(); }
+  if (name === 'laporan') { initLap(); renderLap(); }
+  if (name === 'shift')   { renderShift(); }
+  if (name === 'rjtp')    { initRjtp(); }
+}
+
+// ===================== LOGIN =====================
+async function cekLogin() {
+  const pass = document.getElementById('login-pass').value;
+  const err  = document.getElementById('login-err');
+
+  if (pass !== PASSWORD) {
+    err.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-pass').focus();
+    return;
+  }
+
+  err.style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'flex';
+
+  try {
+    [batches, layananData, pasienData, buangData, keluarLama] = await Promise.all([
+      ld('batches'),
+      ld('layanan'),
+      ld('pasien'),
+      ld('buang'),
+      ld('keluar'),
+    ]);
+    const rawShift = await ld('shiftdata');
+    shiftData = (Array.isArray(rawShift) || !rawShift) ? {} : rawShift;
+    await loadShiftData();
+  } catch (e) {
+    console.error('Error saat load data:', e);
+  }
+
+  document.getElementById('loading-screen').style.display = 'none';
+
+  // Tampilkan tanggal di header
+  const d = new Date();
+  document.getElementById('header-date').textContent =
+    HARI[d.getDay()] + ', ' + d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' + d.getFullYear();
+
+  // Set tanggal default di form obat masuk
+  const mTgl = document.getElementById('m-tgl');
+  if (mTgl) mTgl.value = today();
+
+  shiftYear  = new Date().getFullYear();
+  shiftMonth = new Date().getMonth();
+  go('masuk');
+}
+
+// ===================== HELPERS: STOK =====================
+function daysToExp(tglExp) {
+  if (!tglExp) return 9999;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.floor((new Date(tglExp) - now) / 86400000);
+}
+
+function stokByName(nama) {
+  return batches
+    .filter(b => b.namaObat === nama && b.sisaStok > 0)
+    .reduce((a, b) => a + b.sisaStok, 0);
+}
+
+function allNamaObat() {
+  return [...new Set(batches.map(b => b.namaObat))].sort();
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = msg;
+  setTimeout(() => el.classList.remove('show'), 4500);
+}
+
+// ===================== OBAT MASUK =====================
+function renderWarnMasuk() {
+  const wrap = document.getElementById('warn-masuk');
+  if (!wrap) return;
+
+  const exp  = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) < 0);
+  const warn = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) >= 0 && daysToExp(b.tglExpired) <= 30);
+
+  let h = '';
+  if (exp.length) {
+    h += '<div class="warn-banner exp"><div class="warn-title">🔴 Obat Sudah Expired — Segera Dibuang!</div>';
+    exp.forEach(b => {
+      h += '<div class="warn-item">• ' + b.namaObat + ' — expired: ' + formatTgl(b.tglExpired) + ' (sisa: ' + b.sisaStok + ')</div>';
+    });
+    h += '</div>';
+  }
+  if (warn.length) {
+    h += '<div class="warn-banner warn"><div class="warn-title">⚠️ Obat Akan Expired dalam 30 Hari</div>';
+    warn.forEach(b => {
+      const d = daysToExp(b.tglExpired);
+      h += '<div class="warn-item">• ' + b.namaObat + ' — exp: ' + formatTgl(b.tglExpired) + ' (' + d + ' hari lagi, sisa: ' + b.sisaStok + ')</div>';
+    });
+    h += '</div>';
+  }
+  wrap.innerHTML = h;
+}
+
+function renderMasukHariIni() {
+  const wrap = document.getElementById('masuk-hari-ini');
+  if (!wrap) return;
+
+  const td   = today();
+  const list = batches.filter(b => b.tglMasuk === td);
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>Belum ada obat masuk hari ini.</p></div>';
+    return;
+  }
+
+  let h = '<div class="tw"><table><thead><tr><th>Nama Obat</th><th>Jumlah</th><th>Tgl Expired</th></tr></thead><tbody>';
+  list.forEach(b => {
+    h += '<tr><td><b>' + b.namaObat + '</b></td><td>' + b.jumlah + '</td><td>' + formatTgl(b.tglExpired) + '</td></tr>';
+  });
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+async function tambahObatMasuk() {
+  const namaRaw = document.getElementById('m-nama').value.trim();
+  const nama    = toUpper(namaRaw);
+  const jml     = parseInt(document.getElementById('m-jml').value) || 0;
+  const tgl     = document.getElementById('m-tgl').value || today();
+  const exp     = document.getElementById('m-exp').value;
+
+  if (!nama) { showAlert('al-masuk', 'Nama obat wajib diisi.', 'e'); return; }
+  if (jml <= 0) { showAlert('al-masuk', 'Jumlah harus lebih dari 0.', 'e'); return; }
+
+  const batch = {
+    id       : genId(),
+    namaObat : nama,
+    jumlah   : jml,
+    sisaStok : jml,
+    tglMasuk : tgl,
+    tglExpired: exp || ''
+  };
+  batches.push(batch);
+  await sv('batches', batches);
+
+  // Reset form
+  document.getElementById('m-nama').value = '';
+  document.getElementById('m-jml').value  = '';
+  document.getElementById('m-exp').value  = '';
+  document.getElementById('m-tgl').value  = today();
+  document.getElementById('m-nama').focus();
+
+  showAlert('al-masuk', '✓ ' + nama + ' (' + jml + ') berhasil ditambahkan ke stok!', 's');
+  renderWarnMasuk();
+  renderMasukHariIni();
+}
+
+// ===================== STOK OBAT =====================
+function renderStokStats() {
+  const allNama = allNamaObat();
+  const habis   = allNama.filter(n => stokByName(n) === 0).length;
+  const expB    = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) < 0);
+  const warnB   = batches.filter(b => b.sisaStok > 0 && daysToExp(b.tglExpired) >= 0 && daysToExp(b.tglExpired) <= 30);
+
+  const mkStat = (label, val, color) =>
+    '<div class="card" style="margin-bottom:0;padding:14px 16px;border-left:3px solid ' + color + '">' +
+    '<div style="font-size:11px;color:#A07A8E;font-weight:500;margin-bottom:3px">' + label + '</div>' +
+    '<div style="font-size:26px;font-weight:600;color:' + color + ';line-height:1">' + val + '</div></div>';
+
+  document.getElementById('stok-stats').innerHTML =
+    mkStat('Total Jenis Obat',  allNama.length,  '#C0426E') +
+    mkStat('Stok Habis',        habis,           '#A32D2D') +
+    mkStat('Menjelang Expired', warnB.length,    '#854F0B') +
+    mkStat('Sudah Expired',     expB.length,     '#CC4444');
+}
+
+function renderStok(filter) {
+  filter = (filter || '').toLowerCase();
+  renderStokStats();
+
+  const wrap = document.getElementById('stok-wrap');
+  if (!batches.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">💊</div><p>Belum ada stok obat.</p></div>';
+    return;
+  }
+
+  // Kelompokkan per nama obat
+  const grouped = {};
+  batches
+    .filter(b => !filter || b.namaObat.toLowerCase().includes(filter))
+    .forEach(b => {
+      if (!grouped[b.namaObat]) grouped[b.namaObat] = { nama: b.namaObat, batches: [] };
+      grouped[b.namaObat].batches.push(b);
+    });
+
+  const groups = Object.values(grouped).sort((a, b) => a.nama.localeCompare(b.nama));
+  if (!groups.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>Tidak ada hasil pencarian.</p></div>';
+    return;
+  }
+
+  // Filter batch yang sisanya 0 dari tiap grup
+  groups.forEach(g => {
+    g.batches = g.batches.filter(b => b.sisaStok > 0);
+  });
+  // Buang grup yang semua batchnya habis (totalSisa = 0)
+  const gHabis   = groups.filter(g => g.batches.length === 0 || g.batches.reduce((a,b)=>a+b.sisaStok,0) === 0);
+  const gAktif   = groups.filter(g => g.batches.length > 0 && g.batches.reduce((a,b)=>a+b.sisaStok,0) > 0);
+
+  // Kategorikan grup aktif
+  const katGrup = g => {
+    const ds = g.batches.map(b => daysToExp(b.tglExpired));
+    if (ds.some(d => d < 0))   return 'exp';
+    if (ds.some(d => d <= 30)) return 'warn';
+    return 'good';
+  };
+  const gExp  = gAktif.filter(g => katGrup(g) === 'exp');
+  const gWarn = gAktif.filter(g => katGrup(g) === 'warn');
+  const gGood = gAktif.filter(g => katGrup(g) === 'good');
+  const gBaik     = gGood.filter(g => g.batches.some(b => b.tglExpired));
+  const gTanpaExp = gGood.filter(g => g.batches.every(b => !b.tglExpired));
+
+  let html = '';
+
+  // ── Helper baris separator antar section ──
+  const mkSep = (title, color, count) =>
+    '<tr><td colspan="9" style="padding:8px 11px;background:' + color + '11;border-top:2px solid ' + color + '33">'
+    + '<span style="color:' + color + ';font-size:12px;font-weight:600">' + title + '</span>'
+    + '&nbsp;<span class="badge" style="background:' + color + '22;color:' + color + '">' + count + ' jenis</span>'
+    + '</td></tr>';
+
+  // ── Helper baris data per batch ──
+  const mkRows = (list, defaultColor) => {
+    let s = '';
+    list.forEach(g => {
+      const totalSisa = g.batches.reduce((a, b) => a + b.sisaStok, 0);
+      g.batches.forEach((b, bi) => {
+        const d = daysToExp(b.tglExpired);
+        const statusBadge = !b.tglExpired
+          ? '<span class="badge bg-gray">-</span>'
+          : d < 0  ? '<span class="badge bg-red">Expired</span>'
+          : d <= 30 ? '<span class="badge bg-amber">' + d + ' hr lagi</span>'
+          : '<span class="badge bg-green">Baik</span>';
+        const aksi = '<div style="display:flex;gap:4px">'
+          + '<button class="btn btn-xs btn-o" data-id="' + b.id + '" onclick="editBatch(this.dataset.id)">Edit</button>'
+          + '<button class="btn btn-xs btn-d" data-id="' + b.id + '" onclick="konfirmHapusBatch(this.dataset.id)">Hapus</button>'
+          + '</div>';
+        if (bi === 0) {
+          s += '<tr style="border-top:1px solid rgba(232,144,187,0.22)">'
+            + '<td rowspan="' + g.batches.length + '" style="font-weight:600;vertical-align:top;padding-top:10px">'
+            + g.nama + '<br><span style="font-size:11px;color:#A07A8E;font-weight:400">Total sisa: ' + totalSisa + '</span></td>'
+            + '<td rowspan="' + g.batches.length + '" style="font-size:20px;font-weight:700;vertical-align:top;padding-top:10px;color:' + defaultColor + '">' + totalSisa + '</td>';
+        } else {
+          s += '<tr>';
+        }
+        s += '<td style="color:#A07A8E;font-size:11px">#' + (bi + 1) + '</td>'
+          + '<td>' + b.jumlah + '</td>'
+          + '<td>' + formatTgl(b.tglMasuk) + '</td>'
+          + '<td>' + (b.tglExpired ? formatTgl(b.tglExpired) : '-') + '</td>'
+          + '<td><b>' + b.sisaStok + '</b></td>'
+          + '<td>' + statusBadge + '</td>'
+          + '<td>' + aksi + '</td>'
+          + '</tr>';
+      });
+    });
+    return s;
+  };
+
+  // Stok habis — paling atas, hanya nama obat sebagai pill
+  const namaHabis = allNamaObat().filter(n => stokByName(n) === 0);
+  const filteredHabis = !filter ? namaHabis : namaHabis.filter(n => n.toLowerCase().includes(filter));
+
+  // Mulai satu tabel tunggal
+  html += '<div class="tw"><table><thead><tr>'
+    + '<th>Nama Obat</th><th>Total Sisa</th><th>Batch</th><th>Stok Awal</th>'
+    + '<th>Tgl Masuk</th><th>Tgl Expired</th><th>Sisa</th><th>Status</th><th>Aksi</th>'
+    + '</tr></thead><tbody>';
+
+  // Section: Stok Habis
+  if (filteredHabis.length) {
+    html += mkSep('⭕ Stok Habis', '#A32D2D', filteredHabis.length);
+    filteredHabis.forEach(n => {
+      html += '<tr>'
+        + '<td style="font-weight:600;color:#A07A8E">' + n + '</td>'
+        + '<td colspan="8" style="color:#A32D2D;font-size:12px">Stok habis</td>'
+        + '</tr>';
+    });
+  }
+
+  // Section: Sudah Expired
+  if (gExp.length) {
+    html += mkSep('🔴 Sudah Expired', '#A32D2D', gExp.length);
+    html += mkRows(gExp, '#A32D2D');
+  }
+
+  // Section: Menjelang Expired
+  if (gWarn.length) {
+    html += mkSep('⚠️ Menjelang Expired (≤30 hari)', '#854F0B', gWarn.length);
+    html += mkRows(gWarn, '#854F0B');
+  }
+
+  // Section: Stok Baik
+  if (gBaik.length) {
+    html += mkSep('✅ Stok Baik', '#3B6D11', gBaik.length);
+    html += mkRows(gBaik, '#3B6D11');
+  }
+
+  // Section: Tanpa Expired
+  if (gTanpaExp.length) {
+    html += mkSep('🔵 Tanpa Expired', '#1565C0', gTanpaExp.length);
+    html += mkRows(gTanpaExp, '#1565C0');
+  }
+
+  html += '</tbody></table></div>';
+
+  wrap.innerHTML = html;
+}
+
+function editBatch(id) {
+  const b = batches.find(x => x.id === id);
+  if (!b) return;
+
+  // Cari baris lewat data-id
+  const btn = document.querySelector('#stok-wrap button[data-id="' + id + '"]');
+  if (!btn) return;
+  const targetRow = btn.closest('tr');
+  if (!targetRow) return;
+
+  targetRow.innerHTML = '<td colspan="9" style="padding:14px;background:#FEF0F8">'
+    + '<div class="g4" style="margin-bottom:12px">'
+    + '<div class="fr"><label>Nama Obat</label><input id="eb-nama" type="text" value="' + b.namaObat + '" style="text-transform:uppercase"></div>'
+    + '<div class="fr"><label>Stok Awal</label><input id="eb-awal" type="number" value="' + b.jumlah + '" min="0"></div>'
+    + '<div class="fr"><label>Sisa Stok</label><input id="eb-sisa" type="number" value="' + b.sisaStok + '" min="0"></div>'
+    + '<div class="fr"><label>Tgl Masuk</label><input id="eb-masuk" type="date" value="' + (b.tglMasuk || '') + '"></div>'
+    + '<div class="fr"><label>Tgl Expired</label><input id="eb-exp" type="date" value="' + (b.tglExpired || '') + '"></div>'
+    + '</div>'
+    + '<div class="fe"><button class="btn btn-sm" onclick="renderStok()">Batal</button>'
+    + '<button class="btn btn-p btn-sm" onclick="simpanEditBatch(\'' + id + '\')">✓ Simpan</button></div>'
+    + '</td>';
+}
+
+async function simpanEditBatch(id) {
+  const b = batches.find(x => x.id === id);
+  if (!b) return;
+
+  b.namaObat   = (document.getElementById('eb-nama').value.trim()).toUpperCase();
+  b.jumlah     = parseInt(document.getElementById('eb-awal').value) || 0;
+  b.sisaStok   = parseInt(document.getElementById('eb-sisa').value) || 0;
+  b.tglMasuk   = document.getElementById('eb-masuk').value;
+  b.tglExpired = document.getElementById('eb-exp').value;
+
+  await sv('batches', batches);
+  renderStok();
+  renderWarnMasuk();
+}
+
+function konfirmHapusBatch(id) {
+  const b = batches.find(x => x.id === id);
+  if (!b) return;
+
+  // Cari baris lewat data-id (ambil tombol Hapus)
+  const btns = document.querySelectorAll('#stok-wrap button[data-id="' + id + '"]');
+  if (!btns.length) return;
+  // Tombol kedua adalah Hapus
+  const targetRow = btns[btns.length - 1].closest('tr');
+  if (!targetRow) return;
+
+  targetRow.innerHTML = '<td colspan="9" style="padding:10px;background:#FDECEC">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<span style="font-size:13px">Hapus batch <b>' + b.namaObat + '</b>?</span>'
+    + '<button class="btn btn-d btn-sm" onclick="hapusBatch(\'' + id + '\')">Ya, Hapus</button>'
+    + '<button class="btn btn-sm" onclick="renderStok()">Batal</button>'
+    + '</div></td>';
+}
+
+async function hapusBatch(id) {
+  batches = batches.filter(x => x.id !== id);
+  await sv('batches', batches);
+  renderStok();
+  renderWarnMasuk();
+}
+
+function dlStok() {
+  if (!batches.length) { alert('Stok masih kosong.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Library XLSX belum dimuat.'); return; }
+
+  const rows = [];
+  let no = 1;
+
+  // Helper tambah section header
+  const addHeader = (title, cols) => {
+    rows.push([]);
+    rows.push([title]);
+    rows.push(cols);
+  };
+
+  // Kelompokkan seperti di web
+  const grouped = {};
+  batches
+    .filter(b => b.sisaStok > 0)
+    .forEach(b => {
+      if (!grouped[b.namaObat]) grouped[b.namaObat] = { nama: b.namaObat, batches: [] };
+      grouped[b.namaObat].batches.push(b);
+    });
+  const groups = Object.values(grouped).sort((a, b) => a.nama.localeCompare(b.nama));
+
+  const katGrup = g => {
+    const ds = g.batches.map(b => daysToExp(b.tglExpired));
+    if (ds.some(d => d < 0))   return 'exp';
+    if (ds.some(d => d <= 30)) return 'warn';
+    return 'good';
+  };
+
+  const gExp      = groups.filter(g => katGrup(g) === 'exp');
+  const gWarn     = groups.filter(g => katGrup(g) === 'warn');
+  const gBaik     = groups.filter(g => katGrup(g) === 'good' && g.batches.some(b => b.tglExpired));
+  const gTanpaExp = groups.filter(g => katGrup(g) === 'good' && g.batches.every(b => !b.tglExpired));
+
+  // Fungsi tambah baris per batch (untuk section dengan expired)
+  const addBatchRows = (list) => {
+    list.forEach(g => {
+      const totalSisa = g.batches.reduce((a, b) => a + b.sisaStok, 0);
+      g.batches.forEach((b, bi) => {
+        const d  = daysToExp(b.tglExpired);
+        const st = d < 0 ? 'Expired' : d <= 30 ? 'Menjelang Expired (' + d + ' hr)' : 'Baik';
+        rows.push([
+          no++,
+          g.nama,
+          totalSisa,
+          bi + 1,
+          b.jumlah,
+          b.tglMasuk || '-',
+          b.tglExpired || '-',
+          b.sisaStok,
+          st
+        ]);
+      });
+    });
+  };
+
+  // Section Sudah Expired
+  if (gExp.length) {
+    addHeader('SUDAH EXPIRED', ['No','Nama Obat','Total Sisa','Batch','Stok Awal','Tgl Masuk','Tgl Expired','Sisa','Status']);
+    addBatchRows(gExp);
+    no = 1;
+  }
+
+  // Section Menjelang Expired
+  if (gWarn.length) {
+    addHeader('MENJELANG EXPIRED (≤30 HARI)', ['No','Nama Obat','Total Sisa','Batch','Stok Awal','Tgl Masuk','Tgl Expired','Sisa','Status']);
+    addBatchRows(gWarn);
+    no = 1;
+  }
+
+  // Section Stok Baik
+  if (gBaik.length) {
+    addHeader('STOK BAIK', ['No','Nama Obat','Total Sisa','Batch','Stok Awal','Tgl Masuk','Tgl Expired','Sisa','Status']);
+    addBatchRows(gBaik);
+    no = 1;
+  }
+
+  // Section Tanpa Expired — 1 baris per nama
+  if (gTanpaExp.length) {
+    addHeader('TANPA EXPIRED', ['No','Nama Obat','Total Stok']);
+    gTanpaExp.forEach(g => {
+      const totalSisa = g.batches.reduce((a, b) => a + b.sisaStok, 0);
+      rows.push([no++, g.nama, totalSisa]);
+    });
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stok Obat');
+  XLSX.writeFile(wb, 'STOK_OBAT_' + today().replace(/-/g, '') + '.xlsx');
+}
+
+// ===================== BUANG / EXPIRED =====================
+const ALASAN_LABEL = {
+  expired : 'Expired / Kadaluarsa',
+  rusak   : 'Rusak / Cacat',
+  hilang  : 'Hilang',
+  lainnya : 'Lainnya'
+};
+
+function renderBuangSel() {
+  const sel = document.getElementById('b-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Pilih batch obat --</option>';
+  batches
+    .filter(b => b.sisaStok > 0)
+    .sort((a, b) => a.namaObat.localeCompare(b.namaObat))
+    .forEach(b => {
+      const d    = daysToExp(b.tglExpired);
+      const info = b.tglExpired
+        ? (d < 0 ? ' [EXPIRED]' : ' [exp: ' + formatTgl(b.tglExpired) + ']')
+        : '';
+      sel.innerHTML += '<option value="' + b.id + '">'
+        + b.namaObat + info + ' — sisa ' + b.sisaStok
+        + '</option>';
+    });
+}
+
+function renderBuangRiwayat() {
+  const wrap = document.getElementById('buang-wrap');
+  if (!wrap) return;
+
+  if (!buangData.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🗑</div><p>Belum ada riwayat pembuangan.</p></div>';
+    return;
+  }
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama Obat</th><th>Jumlah</th>'
+    + '<th>Alasan</th><th>Catatan</th><th>Aksi</th>'
+    + '</tr></thead><tbody>';
+
+  buangData.forEach((d, i) => {
+    h += '<tr>'
+      + '<td style="color:#A07A8E">' + (i + 1) + '</td>'
+      + '<td>' + formatTgl(d.tgl) + '</td>'
+      + '<td><b>' + d.namaObat + '</b></td>'
+      + '<td>' + d.jumlah + '</td>'
+      + '<td><span class="badge bg-red">' + (ALASAN_LABEL[d.alasan] || d.alasan) + '</span></td>'
+      + '<td style="font-size:12px;color:#A07A8E">' + (d.catatan || '-') + '</td>'
+      + '<td><button class="btn btn-xs btn-d" data-id="' + d.id + '" onclick="konfirmHapusBuang(this.dataset.id)">Hapus</button></td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+async function simpanBuang() {
+  const bid  = document.getElementById('b-sel').value;
+  const jml  = parseInt(document.getElementById('b-jml').value) || 0;
+  const als  = document.getElementById('b-als').value;
+  const cat  = document.getElementById('b-cat').value.trim();
+
+  if (!bid) { showAlert('al-buang', 'Pilih batch obat terlebih dahulu.', 'e'); return; }
+
+  const b = batches.find(x => x.id === bid);
+  if (!b) return;
+
+  if (jml <= 0 || jml > b.sisaStok) {
+    showAlert('al-buang', 'Jumlah tidak valid. Sisa stok: ' + b.sisaStok + '.', 'e');
+    return;
+  }
+
+  b.sisaStok -= jml;
+  await sv('batches', batches);
+
+  buangData.unshift({
+    id      : genId(),
+    tgl     : today(),
+    batchId : bid,
+    namaObat: b.namaObat,
+    jumlah  : jml,
+    alasan  : als,
+    catatan : cat
+  });
+  await sv('buang', buangData);
+
+  showAlert('al-buang', '✓ ' + jml + ' ' + b.namaObat + ' berhasil dicatat sebagai dibuang.', 's');
+  document.getElementById('b-jml').value = '';
+  document.getElementById('b-cat').value = '';
+  renderBuangSel();
+  renderBuangRiwayat();
+}
+
+function konfirmHapusBuang(id) {
+  const btn = document.querySelector('#buang-wrap button[data-id="' + id + '"]');
+  if (!btn) return;
+  const row = btn.closest('tr');
+  if (!row) return;
+
+  const d = buangData.find(x => x.id === id);
+  if (!d) return;
+
+  row.innerHTML = '<td colspan="7" style="padding:10px;background:#FDECEC">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<span style="font-size:13px">Hapus catatan pembuangan <b>' + d.namaObat + '</b>?</span>'
+    + '<button class="btn btn-d btn-sm" onclick="hapusBuang(\'' + id + '\')">Ya, Hapus</button>'
+    + '<button class="btn btn-sm" onclick="renderBuangRiwayat()">Batal</button>'
+    + '</div></td>';
+}
+
+async function hapusBuang(id) {
+  buangData = buangData.filter(x => x.id !== id);
+  await sv('buang', buangData);
+  renderBuangRiwayat();
+}
+
+function dlBuang() {
+  if (!buangData.length) { alert('Riwayat pembuangan masih kosong.'); return; }
+
+  const rows = [['No','Tanggal','Nama Obat','Jumlah','Alasan','Catatan']];
+  buangData.forEach((d, i) => {
+    rows.push([i + 1, d.tgl, d.namaObat, d.jumlah, ALASAN_LABEL[d.alasan] || d.alasan, d.catatan || '-']);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Riwayat Buang');
+  XLSX.writeFile(wb, 'BUANG_OBAT_' + today().replace(/-/g, '') + '.xlsx');
+}
+
+// ===================== LAYANAN PASIEN =====================
+const DIAGNOSA_TAGS = ['Demam','Flu','Batuk','Diare','Hipertensi','Diabetes',
+                       'ISPA','Pusing','Mual','Maag','Luka','Alergi'];
+let selLayanan    = '';
+let selObatDesa   = {}; // { batchId: { namaObat, batchId, qty } }
+let loadedPasienId = null;   // id pasien yang sedang di-load (kunjungan lama)
+let loadedPasienSnap = null; // snapshot data pasien saat di-load
+
+function initFormLayanan() {
+  // Set tanggal hari ini
+  document.getElementById('lp-tgl').value = today();
+  document.getElementById('lp-jk').value   = '';
+  document.getElementById('lp-desa').value  = '';
+
+  // Reset radio ke default
+  document.getElementById('jk-baru').checked  = true;
+  document.getElementById('ti-bpjs').checked  = true;
+  document.getElementById('jo-desa').checked  = true;
+
+  // Update label noid
+  document.getElementById('lp-noid').placeholder = 'Nomor BPJS...';
+
+  // Sembunyikan search pasien lama
+  document.getElementById('wrap-search-pasien').style.display = 'none';
+
+  // Render obat desa & diagnosa tags
+  renderObatDesaPilihan();
+  renderDiagnosaTags();
+
+  // Pasang event listener radio
+  document.querySelectorAll('input[name="jns-kunjungan"]').forEach(r => {
+    r.onchange = onJenisKunjunganChange;
+  });
+  document.querySelectorAll('input[name="tipe-id"]').forEach(r => {
+    r.onchange = onTipeIdChange;
+  });
+  document.querySelectorAll('input[name="jns-obat"]').forEach(r => {
+    r.onchange = onJenisObatChange;
+  });
+}
+
+function onJenisKunjunganChange() {
+  const val = document.querySelector('input[name="jns-kunjungan"]:checked').value;
+  document.getElementById('wrap-search-pasien').style.display = val === 'lama' ? 'block' : 'none';
+  if (val === 'baru') {
+    clearDataPasienForm();
+    loadedPasienId   = null;
+    loadedPasienSnap = null;
+    document.getElementById('wrap-simpan-pasien').style.display = 'none';
+  }
+}
+
+function onTipeIdChange() {
+  const val = document.querySelector('input[name="tipe-id"]:checked').value;
+  document.getElementById('lp-noid').placeholder = val === 'bpjs' ? 'Nomor BPJS...' : '16 digit NIK...';
+}
+
+function onTglLahirChange() {
+  const tl = document.getElementById('lp-tgllahir').value;
+  document.getElementById('lp-umur').value = hitungUmur(tl);
+}
+
+function onJenisObatChange() {
+  const val = document.querySelector('input[name="jns-obat"]:checked').value;
+  document.getElementById('wrap-obat-desa').style.display = val === 'desa'      ? 'block' : 'none';
+  document.getElementById('wrap-obat-pusk').style.display = val === 'puskesmas' ? 'block' : 'none';
+}
+
+function clearDataPasienForm() {
+  ['lp-noid','lp-nama','lp-tgllahir','lp-umur'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('lp-jk').value   = '';
+  document.getElementById('lp-desa').value  = '';
+}
+
+function pilihLayanan(el, val) {
+  document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  selLayanan = val;
+}
+
+// ---- Search pasien ----
+function cariPasien(q) {
+  const list = document.getElementById('autocomplete-list');
+  if (!q || q.length < 2) { list.style.display = 'none'; return; }
+
+  const hasil = pasienData
+    .filter(p => p.nama.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 8);
+
+  if (!hasil.length) { list.style.display = 'none'; return; }
+
+  list.innerHTML = hasil.map(p => {
+    const idInfo = p.bpjs ? 'BPJS: ' + p.bpjs : p.nik ? 'NIK: ' + p.nik : '';
+    const umurInfo = p.umur || hitungUmur(p.tglLahir) || '';
+    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(232,144,187,0.15)" '
+      + ' onmouseover="this.style.background=\'#FEF0F8\'" onmouseout="this.style.background=\'white\'"'
+      + ' onclick="pilihPasien(\'' + p.id + '\')">'
+      + '<b>' + p.nama + '</b>'
+      + (p.jk ? ' <span style="font-size:10px;background:#FEF0F8;color:#C0426E;border-radius:10px;padding:1px 7px">' + p.jk + '</span>' : '')
+      + '<div style="font-size:11px;color:#A07A8E">' + [idInfo, umurInfo, p.desa].filter(x=>x).join(' • ') + '</div>'
+      + '</div>';
+  }).join('');
+
+  list.style.display = 'block';
+}
+
+function pilihPasien(id) {
+  const p = pasienData.find(x => x.id === id);
+  if (!p) return;
+
+  // Set tipe id
+  if (p.bpjs) {
+    document.getElementById('ti-bpjs').checked = true;
+    document.getElementById('lp-noid').value = p.bpjs;
+    document.getElementById('lp-noid').placeholder = 'Nomor BPJS...';
+  } else if (p.nik) {
+    document.getElementById('ti-nik').checked = true;
+    document.getElementById('lp-noid').value = p.nik;
+    document.getElementById('lp-noid').placeholder = '16 digit NIK...';
+  }
+
+  document.getElementById('lp-nama').value     = p.nama;
+  document.getElementById('lp-jk').value       = p.jk || '';
+  document.getElementById('lp-tgllahir').value = p.tglLahir || '';
+  document.getElementById('lp-umur').value     = p.umur || hitungUmur(p.tglLahir) || '';
+  document.getElementById('lp-desa').value     = p.desa || '';
+  document.getElementById('search-pasien').value = p.nama;
+  document.getElementById('autocomplete-list').style.display = 'none';
+
+  // Simpan snapshot untuk deteksi perubahan
+  loadedPasienId   = p.id;
+  loadedPasienSnap = {
+    noid    : p.bpjs || p.nik || '',
+    tipeId  : p.bpjs ? 'bpjs' : 'nik',
+    nama    : p.nama,
+    jk      : p.jk || '',
+    tglLahir: p.tglLahir || '',
+    desa    : p.desa || ''
+  };
+
+  // Pasang listener perubahan pada field data pasien
+  const pasienFields = ['lp-noid','lp-nama','lp-tgllahir'];
+  pasienFields.forEach(fid => {
+    const el = document.getElementById(fid);
+    if (!el) return;
+    el.oninput = function() {
+      if (this.type === 'text') this.value = this.value.toUpperCase();
+      cekPerubahanPasien();
+    };
+  });
+  ['lp-jk','lp-desa','ti-bpjs','ti-nik'].forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) el.onchange = cekPerubahanPasien;
+  });
+
+  document.getElementById('wrap-simpan-pasien').style.display = 'none';
+}
+
+function cekPerubahanPasien() {
+  if (!loadedPasienSnap) return;
+
+  const curNoid   = document.getElementById('lp-noid').value.trim();
+  const curNama   = document.getElementById('lp-nama').value.trim();
+  const curJk     = document.getElementById('lp-jk').value;
+  const curTgl    = document.getElementById('lp-tgllahir').value;
+  const curDesa   = document.getElementById('lp-desa').value;
+  const curTipeId = document.querySelector('input[name="tipe-id"]:checked').value;
+
+  const berubah = curNoid    !== loadedPasienSnap.noid
+               || curNama    !== loadedPasienSnap.nama
+               || curJk      !== loadedPasienSnap.jk
+               || curTgl     !== loadedPasienSnap.tglLahir
+               || curDesa    !== loadedPasienSnap.desa
+               || curTipeId  !== loadedPasienSnap.tipeId;
+
+  document.getElementById('wrap-simpan-pasien').style.display = berubah ? 'block' : 'none';
+}
+
+async function simpanPerubahanPasien() {
+  if (!loadedPasienId) return;
+  const p = pasienData.find(x => x.id === loadedPasienId);
+  if (!p) return;
+
+  const tipeId = document.querySelector('input[name="tipe-id"]:checked').value;
+  const noid   = document.getElementById('lp-noid').value.trim();
+
+  // Update profil pasien
+  p.nama     = document.getElementById('lp-nama').value.trim().toUpperCase();
+  p.jk       = document.getElementById('lp-jk').value;
+  p.tglLahir = document.getElementById('lp-tgllahir').value;
+  p.umur     = hitungUmur(p.tglLahir);
+  p.desa     = document.getElementById('lp-desa').value;
+
+  // Update nomor id
+  if (tipeId === 'bpjs') { p.bpjs = noid; delete p.nik; }
+  else                   { p.nik  = noid; delete p.bpjs; }
+
+  await sv('pasien', pasienData);
+
+  // Update snapshot
+  loadedPasienSnap = { noid, tipeId, nama: p.nama, jk: p.jk, tglLahir: p.tglLahir, desa: p.desa };
+  document.getElementById('wrap-simpan-pasien').style.display = 'none';
+  showAlert('al-layanan', '✓ Data pasien ' + p.nama + ' berhasil diperbarui.', 's');
+}
+
+// ---- Diagnosa tags ----
+function renderDiagnosaTags() {
+  const wrap = document.getElementById('diagnosa-tags');
+  if (!wrap) return;
+  wrap.innerHTML = DIAGNOSA_TAGS.map(t =>
+    '<button class="diagnosa-tag" data-val="' + t.toUpperCase() + '" onclick="togDiagnosaBtn(this)">' + t.toUpperCase() + '</button>'
+  ).join('');
+}
+
+function togDiagnosaBtn(el) {
+  const val = el.dataset.val;
+  const inp = document.getElementById('lp-diagnosa');
+  const cur = inp.value.split(',').map(x => x.trim()).filter(x => x);
+  const idx = cur.indexOf(val);
+  if (idx >= 0) { cur.splice(idx, 1); el.classList.remove('active'); }
+  else          { cur.push(val);       el.classList.add('active'); }
+  inp.value = cur.join(', ');
+}
+
+// ---- Obat Desa ----
+function renderObatDesaPilihan() {
+  const wrap = document.getElementById('pilih-obat-desa');
+  if (!wrap) return;
+  selObatDesa = {};
+
+  const names = allNamaObat().filter(n => stokByName(n) > 0);
+  if (!names.length) {
+    wrap.innerHTML = '<div class="empty" style="padding:12px"><div class="empty-icon">📭</div><p>Stok obat kosong.</p></div>';
+    return;
+  }
+
+  wrap.innerHTML = names.map(n => {
+    const bs = batches.filter(b => b.namaObat === n && b.sisaStok > 0)
+      .sort((a, b) => new Date(a.tglMasuk) - new Date(b.tglMasuk));
+
+    const semuaTanpaExp = bs.every(b => !b.tglExpired);
+
+    if (semuaTanpaExp) {
+      // Semua batch tanpa expired — gabung jadi 1 pilihan
+      const tot = bs.reduce((a, b) => a + b.sisaStok, 0);
+      const eid = 'obat_' + n.replace(/[^a-z0-9]/gi, '_');
+      // Gunakan id gabungan — simpan semua batchIds di data attr
+      const batchIds = bs.map(b => b.id).join(',');
+      return '<div class="obat-item">'
+        + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-batchids="' + batchIds + '" data-max="' + tot + '" onchange="togObatDesaGabung(this)">'
+        + '<label for="chk_' + eid + '">'
+        + '<span style="font-weight:500">' + n + '</span>'
+        + '<br><span class="stok-info">Total tersedia: ' + tot + '</span>'
+        + '</label>'
+        + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + tot + '" value="1" placeholder="Qty">'
+        + '</div>';
+
+    } else if (bs.length === 1) {
+      // Hanya 1 batch dengan expired
+      const b   = bs[0];
+      const eid = 'obat_' + b.id.replace(/[^a-z0-9]/gi, '_');
+      const d   = daysToExp(b.tglExpired);
+      const warna = d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
+      const expLabel = d < 0 ? ' [EXPIRED]' : ' [exp: ' + formatTgl(b.tglExpired) + ', ' + d + ' hr]';
+      return '<div class="obat-item">'
+        + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-batchid="' + b.id + '" data-max="' + b.sisaStok + '" onchange="togObatDesa(this)">'
+        + '<label for="chk_' + eid + '">'
+        + '<span style="font-weight:500">' + n + '</span>'
+        + '<span style="font-size:10px;color:' + warna + ';font-weight:600">' + expLabel + '</span>'
+        + '<br><span class="stok-info">Sisa: ' + b.sisaStok + '</span>'
+        + '</label>'
+        + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + b.sisaStok + '" value="1" placeholder="Qty">'
+        + '</div>';
+
+    } else {
+      // Banyak batch dengan expired berbeda — tampilkan per batch
+      const tot = bs.reduce((a, b) => a + b.sisaStok, 0);
+      return '<div style="background:#FFF6FA;border:1px solid rgba(232,144,187,0.22);border-radius:8px;padding:10px 12px;margin-bottom:4px">'
+        + '<div style="font-size:13px;font-weight:600;margin-bottom:6px">💊 ' + n
+        + ' <span style="font-size:11px;color:#A07A8E;font-weight:400">(Total sisa: ' + tot + ' — pilih batch)</span></div>'
+        + bs.map((b, i) => {
+            const eid = 'obat_' + b.id.replace(/[^a-z0-9]/gi, '_');
+            const d   = daysToExp(b.tglExpired);
+            const warna = d < 0 ? '#A32D2D' : d <= 30 ? '#854F0B' : '#3B6D11';
+            const expLabel = d < 0 ? 'EXPIRED' : 'Exp: ' + formatTgl(b.tglExpired) + ' (' + d + ' hr)';
+            return '<div class="obat-item" style="background:white;margin-bottom:3px">'
+              + '<input type="checkbox" id="chk_' + eid + '" data-eid="' + eid + '" data-nama="' + n + '" data-batchid="' + b.id + '" data-max="' + b.sisaStok + '" onchange="togObatDesa(this)">'
+              + '<label for="chk_' + eid + '">'
+              + '<span style="font-size:12px">Batch ' + (i+1) + '</span>'
+              + ' <span style="font-size:11px;color:' + warna + ';font-weight:600">[' + expLabel + ']</span>'
+              + '<br><span class="stok-info">Sisa: ' + b.sisaStok + '</span>'
+              + '</label>'
+              + '<input type="number" id="qty_' + eid + '" class="obat-qty" min="1" max="' + b.sisaStok + '" value="1" placeholder="Qty">'
+              + '</div>';
+          }).join('')
+        + '</div>';
+    }
+  }).join('');
+}
+
+function togObatDesaGabung(el) {
+  // Untuk obat tanpa expired — semua batch digabung, kurangi FIFO saat simpan
+  const eid     = el.dataset.eid;
+  const nama    = el.dataset.nama;
+  const batchIds = el.dataset.batchids; // comma-separated
+  const maxStok = parseInt(el.dataset.max) || 0;
+  const qty     = document.getElementById('qty_' + eid);
+  const key     = 'gabung_' + nama;
+
+  if (el.checked) {
+    qty.style.display = 'block';
+    selObatDesa[key] = { namaObat: nama, batchIds: batchIds, qty: parseInt(qty.value) || 1, maxStok: maxStok, gabung: true };
+    qty.oninput = () => {
+      if (selObatDesa[key]) {
+        const v = parseInt(qty.value) || 1;
+        selObatDesa[key].qty = Math.min(v, maxStok);
+        if (v > maxStok) qty.value = maxStok;
+      }
+    };
+  } else {
+    qty.style.display = 'none';
+    delete selObatDesa[key];
+  }
+}
+
+function togObatDesa(el) {
+  const eid     = el.dataset.eid;
+  const nama    = el.dataset.nama;
+  const batchId = el.dataset.batchid;
+  const maxStok = parseInt(el.dataset.max) || 0;
+  const qty     = document.getElementById('qty_' + eid);
+
+  if (el.checked) {
+    qty.style.display = 'block';
+    // Key by batchId so same-name different-batch are tracked separately
+    selObatDesa[batchId] = { namaObat: nama, batchId: batchId, qty: parseInt(qty.value) || 1, maxStok: maxStok };
+    qty.oninput = () => {
+      if (selObatDesa[batchId]) {
+        const v = parseInt(qty.value) || 1;
+        selObatDesa[batchId].qty = Math.min(v, maxStok);
+        if (v > maxStok) qty.value = maxStok;
+      }
+    };
+  } else {
+    qty.style.display = 'none';
+    delete selObatDesa[batchId];
+  }
+}
+
+// ---- Filter obat desa ----
+function filterObatDesa(q) {
+  q = (q || '').toLowerCase().trim();
+  const wrap = document.getElementById('pilih-obat-desa');
+  if (!wrap) return;
+
+  // Tampilkan/sembunyikan item berdasarkan query
+  // Item bisa berupa .obat-item langsung atau wrapper div (multi-batch)
+  const items = wrap.children;
+  Array.from(items).forEach(item => {
+    // Ambil nama obat dari label atau heading
+    const label = item.querySelector('label');
+    const heading = item.querySelector('div[style*="font-weight:600"]');
+    const namaEl = label || heading;
+    if (!namaEl) return;
+
+    const nama = namaEl.textContent.toLowerCase();
+
+    // Jangan sembunyikan jika ada yang sudah dicentang di dalamnya
+    const checkedInside = item.querySelector('input[type=checkbox]:checked');
+
+    if (!q || nama.includes(q) || checkedInside) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+// ---- Reset form ----
+function resetFormLayanan() {
+  document.getElementById('jk-baru').checked  = true;
+  document.getElementById('ti-bpjs').checked  = true;
+  document.getElementById('jo-desa').checked  = true;
+  onJenisKunjunganChange();
+  onTipeIdChange();
+  onJenisObatChange();
+
+  document.querySelectorAll('.pill-btn').forEach(p => p.classList.remove('active'));
+  selLayanan = '';
+
+  const ids = ['lp-noid','lp-nama','lp-tgllahir','lp-umur',
+               'pm-bb','pm-tb','pm-lp','pm-td','pm-n','pm-s','pm-p',
+               'pm-chol','pm-au','pm-gda','lp-diagnosa','lp-tindakan',
+               'obat-pusk-input','lp-catatan','search-pasien'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('lp-tgl').value = today();
+
+  selObatDesa      = {};
+  loadedPasienId   = null;
+  loadedPasienSnap = null;
+  document.getElementById('wrap-simpan-pasien').style.display = 'none';
+  const searchObat = document.getElementById('search-obat-desa');
+  if (searchObat) searchObat.value = '';
+  renderObatDesaPilihan();
+  renderDiagnosaTags();
+}
+
+// ---- Simpan Layanan ----
+async function simpanLayanan() {
+  const jnsKunjungan = document.querySelector('input[name="jns-kunjungan"]:checked').value;
+  const tipeId       = document.querySelector('input[name="tipe-id"]:checked').value;
+  const jenisObat    = document.querySelector('input[name="jns-obat"]:checked').value;
+  const noid         = document.getElementById('lp-noid').value.trim();
+  const nama         = document.getElementById('lp-nama').value.trim().toUpperCase();
+  const jk           = document.getElementById('lp-jk').value;
+  const tglLahir     = document.getElementById('lp-tgllahir').value;
+  const umur         = document.getElementById('lp-umur').value;
+  const desa         = document.getElementById('lp-desa').value.trim().toUpperCase();
+  const tgl          = document.getElementById('lp-tgl').value;
+  const diagnosa     = document.getElementById('lp-diagnosa').value.trim().toUpperCase();
+  const tindakan     = document.getElementById('lp-tindakan').value.trim();
+  const catatan      = document.getElementById('lp-catatan').value.trim();
+  const obatPusk     = document.getElementById('obat-pusk-input').value.trim();
+
+  // Validasi
+  if (!selLayanan) { showAlert('al-layanan', 'Pilih jenis layanan terlebih dahulu.', 'e'); return; }
+  if (!nama)       { showAlert('al-layanan', 'Nama pasien wajib diisi.', 'e'); return; }
+  if (!tgl)        { showAlert('al-layanan', 'Tanggal layanan wajib diisi.', 'e'); return; }
+
+  // Proses obat desa
+  let obatDetail = [];
+  if (jenisObat === 'desa') {
+    const olist = Object.values(selObatDesa).filter(x => x && x.qty > 0);
+    // Proses tiap obat yang dipilih
+    for (const x of olist) {
+      if (x.gabung) {
+        // Obat tanpa expired — gabung, kurangi FIFO dari batchIds
+        const ids  = x.batchIds.split(',');
+        const avail = ids.reduce((a, id) => {
+          const b = batches.find(bx => bx.id === id);
+          return a + (b ? b.sisaStok : 0);
+        }, 0);
+        if (avail < x.qty) {
+          showAlert('al-layanan', 'Stok "' + x.namaObat + '" tidak cukup (tersedia: ' + avail + ').', 'e');
+          return;
+        }
+        let sisa = x.qty;
+        for (const id of ids) {
+          if (sisa <= 0) break;
+          const b = batches.find(bx => bx.id === id);
+          if (!b || b.sisaStok <= 0) continue;
+          const ambil = Math.min(sisa, b.sisaStok);
+          b.sisaStok -= ambil;
+          sisa -= ambil;
+          obatDetail.push({ batchId: b.id, namaObat: x.namaObat, qty: ambil, tglExpired: '' });
+        }
+      } else {
+        // Obat dengan expired — batch spesifik yang dipilih user
+        const b = batches.find(bx => bx.id === x.batchId);
+        if (!b || b.sisaStok < x.qty) {
+          const sisa = b ? b.sisaStok : 0;
+          showAlert('al-layanan', 'Stok "' + x.namaObat + '" tidak cukup (sisa batch: ' + sisa + ').', 'e');
+          return;
+        }
+        b.sisaStok -= x.qty;
+        obatDetail.push({ batchId: b.id, namaObat: x.namaObat, qty: x.qty, tglExpired: b.tglExpired });
+      }
+    }
+    if (obatDetail.length > 0) await sv('batches', batches);
+  }
+
+  // Simpan profil pasien baru jika belum ada
+  const existing = pasienData.find(p => p.nama === nama);
+  if (!existing) {
+    const newPasien = { id: genId(), nama, jk, tglLahir, umur, desa };
+    if (tipeId === 'bpjs') newPasien.bpjs = noid;
+    else                   newPasien.nik  = noid;
+    pasienData.push(newPasien);
+    await sv('pasien', pasienData);
+  }
+
+  // Simpan data layanan
+  const rec = {
+    id: genId(), tgl, namaPasien: nama, jk, tglLahir, umur, desa,
+    jenisKunjungan: jnsKunjungan,
+    jenisLayanan  : selLayanan,
+    pemeriksaan: {
+      bb: document.getElementById('pm-bb').value,
+      tb: document.getElementById('pm-tb').value,
+      lp: document.getElementById('pm-lp').value,
+      td: document.getElementById('pm-td').value,
+      n : document.getElementById('pm-n').value,
+      s : document.getElementById('pm-s').value,
+      p : document.getElementById('pm-p').value,
+      chol: document.getElementById('pm-chol').value,
+      au  : document.getElementById('pm-au').value,
+      gda : document.getElementById('pm-gda').value,
+    },
+    diagnosa, tindakan, jenisObat,
+    obat        : jenisObat === 'desa'      ? obatDetail : [],
+    obatPuskesmas: jenisObat === 'puskesmas' ? obatPusk   : '',
+    catatan
+  };
+  if (tipeId === 'bpjs') rec.bpjs = noid;
+  else                   rec.nik  = noid;
+
+  layananData.unshift(rec);
+  await sv('layanan', layananData);
+
+  showAlert('al-layanan', '✓ Layanan untuk ' + nama + ' berhasil disimpan!', 's');
+  resetFormLayanan();
+  renderLayanan();
+}
+
+// ---- Render riwayat layanan ----
+function renderLayanan(filter) {
+  filter = (filter || '').toLowerCase();
+  const wrap = document.getElementById('layanan-wrap');
+  if (!wrap) return;
+
+  const data = layananData
+    .filter(r => !filter || r.namaPasien.toLowerCase().includes(filter))
+    .sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🏥</div><p>Belum ada data layanan pasien.</p></div>';
+    return;
+  }
+
+  const jlbl = { 'kunjungan-rumah': '🏠 Kunjungan Rumah', 'posyandu': '👶 Posyandu', 'kantor-desa': '🏛 Kantor Desa' };
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama Pasien</th><th>Layanan</th>'
+    + '<th>Diagnosa</th><th>Tindakan</th><th>Obat</th><th>Aksi</th>'
+    + '</tr></thead><tbody>';
+
+  data.forEach((r, i) => {
+    let obatStr = '-';
+    if (r.jenisObat === 'desa' && r.obat && r.obat.length > 0) {
+      obatStr = r.obat.map(o =>
+        '<span class="badge bg-pink" style="font-size:10px;margin:1px">' + o.namaObat + ' ×' + o.qty + '</span>'
+      ).join(' ');
+    } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
+      const lines2 = r.obatPuskesmas.split('\n').map(o => o.trim()).filter(o => o);
+      obatStr = lines2.map(o => {
+        const txt = o.length > 30 ? o.substring(0,30) + '...' : o;
+        return '<span class="badge bg-blue" style="font-size:10px;margin:1px;display:inline-block">🏥 ' + txt + '</span>';
+      }).join(' ');
+    }
+
+    h += '<tr>'
+      + '<td style="color:#A07A8E">' + (i + 1) + '</td>'
+      + '<td>' + formatTgl(r.tgl) + '</td>'
+      + '<td><b>' + r.namaPasien + '</b><br><span style="font-size:11px;color:#A07A8E">' + (r.desa || '') + '</span></td>'
+      + '<td style="font-size:12px">' + (jlbl[r.jenisLayanan] || r.jenisLayanan || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.diagnosa || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.tindakan || '-') + '</td>'
+      + '<td>' + obatStr + '</td>'
+      + '<td><button class="btn btn-xs btn-d" data-id="' + r.id + '" onclick="konfirmHapusLayanan(this.dataset.id)">Hapus</button></td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+function konfirmHapusLayanan(id) {
+  const btn = document.querySelector('#layanan-wrap button[data-id="' + id + '"]');
+  if (!btn) return;
+  const row = btn.closest('tr');
+  const r   = layananData.find(x => x.id === id);
+  if (!r) return;
+
+  row.innerHTML = '<td colspan="8" style="padding:10px;background:#FDECEC">'
+    + '<div style="display:flex;align-items:center;gap:10px">'
+    + '<span style="font-size:13px">Hapus data layanan <b>' + r.namaPasien + '</b>?</span>'
+    + '<button class="btn btn-d btn-sm" data-id="' + r.id + '" onclick="hapusLayanan(this.dataset.id)">Ya, Hapus</button>'
+    + '<button class="btn btn-sm" onclick="renderLayanan()">Batal</button>'
+    + '</div></td>';
+}
+
+async function hapusLayanan(id) {
+  layananData = layananData.filter(x => x.id !== id);
+  await sv('layanan', layananData);
+  renderLayanan();
+}
+
+function dlLayanan() {
+  if (!layananData.length) { alert('Belum ada data layanan.'); return; }
+  const rows = [['No','Tanggal','Nama','Desa','Jenis Kunjungan','Jenis Layanan',
+                 'BB','TB','LP','TD','N','S','P','CHOL','AU','GDA',
+                 'Diagnosa','Tindakan','Jenis Obat','Obat','Catatan']];
+  layananData.forEach((r, i) => {
+    const pm = r.pemeriksaan || {};
+    const obatStr = r.jenisObat === 'desa'
+      ? (r.obat || []).map(o => o.namaObat + '(' + o.qty + ')').join(';')
+      : r.obatPuskesmas || '-';
+    rows.push([i+1, r.tgl, r.namaPasien, r.desa||'-', r.jenisKunjungan, r.jenisLayanan,
+               pm.bb||'-', pm.tb||'-', pm.lp||'-', pm.td||'-', pm.n||'-',
+               pm.s||'-', pm.p||'-', pm.chol||'-', pm.au||'-', pm.gda||'-',
+               r.diagnosa||'-', r.tindakan||'-', r.jenisObat, obatStr, r.catatan||'-']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Layanan Pasien');
+  XLSX.writeFile(wb, 'LAYANAN_PASIEN_' + today().replace(/-/g,'') + '.xlsx');
+}
+
+// ===================== REKAP OBAT KELUAR =====================
+function initRekap() {
+  const yr = new Date().getFullYear();
+  const curM = new Date().getMonth() + 1;
+
+  // Init filter bulan & tahun untuk Rekap Obat Keluar
+  const rb = document.getElementById('rekap-bln');
+  const rt = document.getElementById('rekap-thn');
+  if (!rb.options.length) {
+    rb.innerHTML = '<option value="">Semua Bulan</option>';
+    BULAN.forEach((m, i) => {
+      rb.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+        + (i+1 === curM ? ' selected' : '') + '>' + m + '</option>';
+    });
+  }
+  if (!rt.options.length) {
+    for (let y = yr; y >= yr - 4; y--) {
+      rt.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
+    }
+  }
+
+  // Init filter bulan & tahun untuk data lama
+  const bs = document.getElementById('lama-bln');
+  const ts = document.getElementById('lama-thn');
+  if (!bs.options.length) {
+    BULAN.forEach((m, i) => {
+      bs.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+        + (i+1 === curM ? ' selected' : '') + '>' + m + '</option>';
+    });
+  }
+  if (!ts.options.length) {
+    for (let y = yr; y >= yr - 4; y--) {
+      ts.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
+    }
+  }
+  renderRekap();
+  renderRekapLama();
+}
+function renderRekap() {
+  const bln  = document.getElementById('rekap-bln').value;
+  const thn  = document.getElementById('rekap-thn').value;
+  const filter = (document.getElementById('search-rekap').value || '').toLowerCase();
+  const wrap = document.getElementById('rekap-wrap');
+  if (!wrap) return;
+
+  let data = layananData
+    .filter(r => (r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
+               || (r.jenisObat === 'puskesmas' && r.obatPuskesmas));
+
+  // Filter bulan & tahun
+  if (thn) data = data.filter(r => r.tgl && r.tgl.startsWith(thn));
+  if (bln) data = data.filter(r => r.tgl && r.tgl.slice(5, 7) === bln);
+
+  // Filter nama
+  if (filter) data = data.filter(r => r.namaPasien.toLowerCase().includes(filter));
+
+  data.sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Belum ada rekap obat keluar'
+      + (bln || thn ? ' di periode ini' : '') + '.</p></div>';
+    return;
+  }
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama</th><th>Diagnosa</th><th>Obat Diberikan</th><th>Edit</th>'
+    + '</tr></thead><tbody>';
+
+  data.forEach((r, i) => {
+    let obatStr = '-';
+    if (r.jenisObat === 'desa' && r.obat && r.obat.length) {
+      obatStr = r.obat.map(o =>
+        '<span class="badge bg-pink" style="margin:1px;font-size:10px">' + o.namaObat + ' ×' + o.qty + '</span>'
+      ).join(' ');
+    } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
+      obatStr = r.obatPuskesmas.split('\n')
+        .map(o => o.trim()).filter(o => o)
+        .map(o => '<span class="badge bg-blue" style="font-size:10px;margin:1px;display:inline-block">🏥 ' + o + '</span>')
+        .join(' ');
+    }
+
+    h += '<tr>'
+      + '<td style="color:#A07A8E">' + (i + 1) + '</td>'
+      + '<td style="white-space:nowrap">' + formatTgl(r.tgl) + '</td>'
+      + '<td><b>' + r.namaPasien + '</b></td>'
+      + '<td style="font-size:12px">' + (r.diagnosa || '-') + '</td>'
+      + '<td>' + obatStr + '</td>'
+      + '<td><button class="btn btn-xs btn-o" data-id="' + r.id + '" onclick="bukaEditObatKeluar(this.dataset.id)">Edit Obat</button></td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+// State untuk edit data lama sebelum disimpan
+let editDataLama = {}; // { idx: { field: value } }
+
+function renderRekapLama(semua) {
+  const wrap = document.getElementById('rekap-lama-wrap');
+  if (!wrap) return;
+  editDataLama = {};
+
+  if (!keluarLama.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🗂</div><p>Tidak ada data lama.</p></div>';
+    return;
+  }
+
+  let data = [...keluarLama];
+  if (!semua) {
+    const bln = document.getElementById('lama-bln').value;
+    const thn = document.getElementById('lama-thn').value;
+    data = data.filter(r => r.tgl && r.tgl.startsWith(thn + '-' + bln));
+  }
+  data.sort((a, b) => (b.tgl || '').localeCompare(a.tgl || ''));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>Tidak ada data di bulan ini.</p></div>';
+    return;
+  }
+
+  // Simpan data untuk referensi
+  wrap._data = data;
+
+  const DESA_OPTS = ['','HORODOPI','INEBENGGI','WOITOMBO','WATUPUTE','LAPANGISI','SABI-SABILA','LAMBOTUA','PUUOSU','NELOMBU','ULU MOWEWE'];
+
+  let h = '';
+  data.forEach((r, i) => {
+    const nama     = (r.nama || r.namaPasien || '').toUpperCase();
+    const tgl      = r.tgl || '';
+    const nik      = r.nik || '';
+    const diagnosa = (r.diagnosa || r.penyakit || '').toUpperCase();
+    const desa     = (r.desa || '').toUpperCase();
+    const jk       = r.jk || '';
+    const tglLahir = r.tglLahir || '';
+    const umur     = r.umur || '';
+    const catatan  = r.catatan || '';
+
+    // Obat lama
+    let obatStr = '-';
+    if (Array.isArray(r.obat) && r.obat.length) {
+      obatStr = r.obat.map(o =>
+        '<span class="badge bg-pink" style="font-size:10px;margin:1px">'
+        + (o.namaObat || o.nama || '') + ' ×' + (o.qty || o.jumlah || 1) + '</span>'
+      ).join(' ');
+    } else if (typeof r.obat === 'string' && r.obat) {
+      obatStr = '<span style="font-size:12px">' + r.obat + '</span>';
+    }
+
+    const sudahAda = layananData.some(l =>
+      (r.id && l.idLama === r.id) ||
+      (l.namaPasien === nama && l.tgl === tgl)
+    );
+
+    // Helper buat input field — tandai merah jika kosong
+    const inp = (fld, val, type, ph) => {
+      const empty = !val ? 'border-color:#E24B4A;' : '';
+      return '<input type="' + type + '" data-idx="' + i + '" data-fld="' + fld + '" value="' + val + '" placeholder="' + ph + '"'
+        + ' oninput="onEditLama(this)"'
+        + ' style="width:100%;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);' + empty + 'border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none;text-transform:uppercase">';
+    };
+
+    const selJk = '<select data-idx="' + i + '" data-fld="jk" onchange="onEditLama(this)"'
+      + ' style="width:100%;padding:5px 8px;border:1px solid ' + (!jk ? '#E24B4A' : 'rgba(232,144,187,0.38)') + ';border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+      + '<option value="">-- JK --</option>'
+      + '<option value="L"' + (jk==='L'?' selected':'') + '>L</option>'
+      + '<option value="P"' + (jk==='P'?' selected':'') + '>P</option>'
+      + '</select>';
+
+    const selDesa = '<select data-idx="' + i + '" data-fld="desa" onchange="onEditLama(this)"'
+      + ' style="width:100%;padding:5px 8px;border:1px solid ' + (!desa ? '#E24B4A' : 'rgba(232,144,187,0.38)') + ';border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+      + DESA_OPTS.map(d => '<option value="' + d + '"' + (d===desa?' selected':'') + '>' + (d||'-- Desa/Kel --') + '</option>').join('')
+      + '</select>';
+
+    const selLayanan = '<select data-idx="' + i + '" data-fld="jenisLayanan" onchange="onEditLama(this)"'
+      + ' style="width:100%;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:6px;font-size:12px;font-family:DM Sans,sans-serif;outline:none">'
+      + ['kunjungan-rumah','posyandu','kantor-desa'].map(v =>
+          '<option value="' + v + '"' + (v===(r.jenisLayanan||'kantor-desa')?' selected':'') + '>' + v + '</option>'
+        ).join('')
+      + '</select>';
+
+    if (sudahAda) {
+      h += '<div style="background:#F0FBF0;border:1px solid #A8D5A8;border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+        + '<span class="badge bg-green">✓ Tersimpan</span>'
+        + '<span style="font-size:13px;font-weight:600">' + nama + '</span>'
+        + '<span style="font-size:12px;color:#A07A8E">' + formatTgl(tgl) + '</span>'
+        + '</div>';
+      return;
+    }
+
+    h += '<div style="background:#FFF6FA;border:1px solid rgba(232,144,187,0.3);border-radius:12px;padding:14px 16px;margin-bottom:10px">'
+      // Header baris
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+      + '<span style="font-size:13px;font-weight:700">' + (nama || '<span style="color:#E24B4A">— Nama kosong —</span>') + '</span>'
+      + '<span style="font-size:11px;color:#A07A8E">' + formatTgl(tgl) + '</span>'
+      + '<span style="font-size:11px;color:#A07A8E">| Obat: ' + obatStr + '</span>'
+      + '</div>'
+      // Grid field
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Tanggal</div>'
+        + inp('tgl', tgl, 'date', '') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Nama Pasien</div>'
+        + inp('nama', nama, 'text', 'Nama...') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">NIK / BPJS</div>'
+        + inp('nik', nik, 'text', 'NIK/BPJS...') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Jenis Kelamin</div>'
+        + selJk + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Tgl Lahir</div>'
+        + inp('tglLahir', tglLahir, 'date', '') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Umur</div>'
+        + inp('umur', umur, 'text', 'Umur...') + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Desa / Kelurahan</div>'
+        + selDesa + '</div>'
+      + '<div><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Jenis Layanan</div>'
+        + selLayanan + '</div>'
+      + '<div style="grid-column:span 2"><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Diagnosa / Keluhan</div>'
+        + inp('diagnosa', diagnosa, 'text', 'Diagnosa...') + '</div>'
+      + '<div style="grid-column:span 2"><div style="font-size:10px;color:#A07A8E;margin-bottom:3px">Catatan</div>'
+        + inp('catatan', catatan, 'text', 'Catatan...') + '</div>'
+      + '</div>'
+      // Tombol simpan
+      + '<div style="display:flex;justify-content:flex-end">'
+      + '<button class="btn btn-p btn-sm" data-idx="' + i + '" onclick="simpanDataLama(this.dataset.idx)">💾 Simpan ke Data Baru</button>'
+      + '</div>'
+      + '</div>';
+  });
+
+  wrap.innerHTML = h;
+}
+
+function onEditLama(el) {
+  const idx = el.dataset.idx;
+  const fld = el.dataset.fld;
+  let val   = el.value;
+  if (el.type === 'text') val = val.toUpperCase();
+  if (!editDataLama[idx]) editDataLama[idx] = {};
+  editDataLama[idx][fld] = val;
+  // Update border color
+  el.style.borderColor = val ? 'rgba(232,144,187,0.38)' : '#E24B4A';
+}
+
+async function simpanDataLama(idx) {
+  const wrap = document.getElementById('rekap-lama-wrap');
+  if (!wrap || !wrap._data) return;
+
+  const r    = wrap._data[parseInt(idx)];
+  const edit = editDataLama[idx] || {};
+  if (!r) return;
+
+  // Gabung data asli dengan hasil edit
+  const nama      = (edit.nama      || r.nama      || r.namaPasien || '').toUpperCase();
+  const tgl       = edit.tgl        || r.tgl        || today();
+  const nik       = edit.nik        || r.nik        || '';
+  const jk        = edit.jk         || r.jk         || '';
+  const tglLahir  = edit.tglLahir   || r.tglLahir   || '';
+  const umur      = edit.umur       || r.umur       || hitungUmur(tglLahir);
+  const desa      = (edit.desa      || r.desa       || '').toUpperCase();
+  const diagnosa  = (edit.diagnosa  || r.diagnosa   || r.penyakit || '').toUpperCase();
+  const layanan   = edit.jenisLayanan || r.jenisLayanan || 'kantor-desa';
+  const catatan   = edit.catatan    || r.catatan    || 'Diimpor dari data lama';
+
+  if (!nama) { showAlert('al-rekap', 'Nama pasien wajib diisi sebelum menyimpan.', 'e'); return; }
+
+  // Cek duplikat
+  const sudahAda = layananData.some(l =>
+    (r.id && l.idLama === r.id) ||
+    (l.namaPasien === nama && l.tgl === tgl)
+  );
+  if (sudahAda) { showAlert('al-rekap', 'Data ini sudah tersimpan.', 'e'); return; }
+
+  // Format obat lama
+  let obat = [];
+  if (Array.isArray(r.obat) && r.obat.length) {
+    obat = r.obat.map(o => ({
+      batchId   : o.batchId || '',
+      namaObat  : (o.namaObat || o.nama || '').toUpperCase(),
+      qty       : o.qty || o.jumlah || 1,
+      tglExpired: o.tglExpired || ''
+    }));
+  }
+
+  const rec = {
+    id            : genId(),
+    idLama        : r.id || '',
+    tgl, namaPasien: nama, jk, tglLahir, umur, desa, nik,
+    jenisKunjungan: 'lama',
+    jenisLayanan  : layanan,
+    pemeriksaan   : {},
+    diagnosa, tindakan: '',
+    jenisObat     : obat.length ? 'desa' : 'kosong',
+    obat,
+    obatPuskesmas : '',
+    catatan
+  };
+
+  layananData.push(rec);
+  await sv('layanan', layananData);
+
+  // Simpan juga profil pasien jika belum ada
+  if (nama && !pasienData.find(p => p.nama === nama)) {
+    const newP = { id: genId(), nama, jk, tglLahir, umur, desa };
+    if (nik) newP.nik = nik;
+    pasienData.push(newP);
+    await sv('pasien', pasienData);
+  }
+
+  showAlert('al-rekap', '✓ Data ' + nama + ' berhasil disimpan ke data baru.', 's');
+  renderRekapLama();
+  renderRekap();
+}
+
+// State sementara untuk edit obat keluar
+let editObatTemp = []; // array of { batchId, namaObat, qty, tglExpired }
+
+function bukaEditObatKeluar(id) {
+  const r = layananData.find(x => x.id === id);
+  if (!r) return;
+  editLayananId = id;
+  editLayananMode = 'obat';
+
+  // Salin obat saat ini ke state sementara
+  editObatTemp = r.jenisObat === 'desa'
+    ? (r.obat || []).map(o => ({ ...o }))
+    : [];
+
+  document.getElementById('popup-lay-title').textContent =
+    'Edit Obat — ' + r.namaPasien + ' (' + formatTgl(r.tgl) + ')';
+
+  renderEditObatBody(r);
+  document.getElementById('popup-layanan').style.display = 'flex';
+}
+
+function renderEditObatBody(r) {
+  const wrap = document.getElementById('popup-lay-body');
+  if (!wrap) return;
+
+  if (r.jenisObat === 'puskesmas') {
+    // Obat puskesmas: textarea saja
+    wrap.innerHTML = '<div style="font-size:12px;color:#A07A8E;margin-bottom:10px">Obat dari Puskesmas — edit teks:</div>'
+      + '<textarea id="obat-pusk-edit" rows="4" style="width:100%;padding:8px 11px;border:1px solid rgba(232,144,187,0.38);border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;outline:none;resize:vertical">'
+      + (r.obatPuskesmas || '') + '</textarea>';
+    return;
+  }
+
+  // Obat desa: list yang bisa diedit qty, hapus, dan tambah
+  let h = '<div style="font-size:12px;color:#A07A8E;margin-bottom:10px">Edit jumlah, hapus, atau tambah obat:</div>';
+
+  // List obat saat ini
+  if (editObatTemp.length) {
+    editObatTemp.forEach((o, i) => {
+      const d = daysToExp(o.tglExpired);
+      const expInfo = o.tglExpired
+        ? (d < 0 ? ' <span style="color:#A32D2D;font-size:10px">[EXPIRED]</span>'
+                 : ' <span style="color:#A07A8E;font-size:10px">[exp: ' + formatTgl(o.tglExpired) + ']</span>')
+        : '';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:8px 12px;background:#FFF6FA;border:1px solid rgba(232,144,187,0.22);border-radius:8px">'
+        + '<span style="flex:1;font-size:13px;font-weight:500">' + o.namaObat + expInfo + '</span>'
+        + '<label style="font-size:12px;color:#A07A8E;white-space:nowrap">Qty:</label>'
+        + '<input type="number" data-idx="' + i + '" value="' + o.qty + '" min="1"'
+        + ' oninput="editObatTemp[this.dataset.idx].qty=parseInt(this.value)||1"'
+        + ' style="width:65px;padding:5px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:6px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
+        + '<button class="btn btn-xs btn-d" data-idx="' + i + '" onclick="hapusObatTemp(this.dataset.idx)">✕</button>'
+        + '</div>';
+    });
+  } else {
+    h += '<div style="color:#A07A8E;font-size:13px;padding:10px 0">Belum ada obat.</div>';
+  }
+
+  // Tambah obat dari stok
+  h += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(232,144,187,0.22)">'
+    + '<div style="font-size:12px;font-weight:600;color:#A07A8E;margin-bottom:8px">+ Tambah Obat dari Stok</div>'
+    + '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    + '<select id="tambah-obat-sel" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid rgba(232,144,187,0.38);border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
+    + '<option value="">-- Pilih obat --</option>';
+
+  // Opsi: per batch kalau ada expired, gabung kalau tanpa expired
+  const names = allNamaObat().filter(n => stokByName(n) > 0);
+  names.forEach(n => {
+    const bs = batches.filter(b => b.namaObat === n && b.sisaStok > 0);
+    const semuaTanpa = bs.every(b => !b.tglExpired);
+    if (semuaTanpa) {
+      const tot = bs.reduce((a,b) => a+b.sisaStok, 0);
+      const batchIds = bs.map(b => b.id).join(',');
+      h += '<option value="GABUNG|' + n + '|' + batchIds + '">' + n + ' (sisa: ' + tot + ')</option>';
+    } else {
+      bs.forEach((b, bi) => {
+        const d = daysToExp(b.tglExpired);
+        const expL = !b.tglExpired ? '' : d < 0 ? ' [EXPIRED]' : ' [exp: ' + formatTgl(b.tglExpired) + ']';
+        h += '<option value="BATCH|' + b.id + '|' + n + '|' + (b.tglExpired||'') + '">'
+          + n + ' Batch' + (bi+1) + expL + ' (sisa: ' + b.sisaStok + ')</option>';
+      });
+    }
+  });
+
+  h += '</select>'
+    + '<input type="number" id="tambah-obat-qty" value="1" min="1"'
+    + ' style="width:65px;padding:7px 8px;border:1px solid rgba(232,144,187,0.38);border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;outline:none">'
+    + '<button class="btn btn-sm btn-o" onclick="tambahObatTemp()">+ Tambah</button>'
+    + '</div></div>';
+
+  wrap.innerHTML = h;
+}
+
+function hapusObatTemp(idx) {
+  editObatTemp.splice(parseInt(idx), 1);
+  const r = layananData.find(x => x.id === editLayananId);
+  if (r) renderEditObatBody(r);
+}
+
+function tambahObatTemp() {
+  const sel = document.getElementById('tambah-obat-sel');
+  const qty = parseInt(document.getElementById('tambah-obat-qty').value) || 1;
+  if (!sel || !sel.value) { alert('Pilih obat terlebih dahulu.'); return; }
+
+  const parts = sel.value.split('|');
+  if (parts[0] === 'GABUNG') {
+    const nama     = parts[1];
+    const batchIds = parts[2];
+    editObatTemp.push({ batchIds, namaObat: nama, qty, tglExpired: '', gabung: true });
+  } else {
+    const batchId   = parts[1];
+    const nama      = parts[2];
+    const tglExpired = parts[3] || '';
+    editObatTemp.push({ batchId, namaObat: nama, qty, tglExpired, gabung: false });
+  }
+
+  const r = layananData.find(x => x.id === editLayananId);
+  if (r) renderEditObatBody(r);
+}
+
+async function simpanEditObatKeluar() {
+  if (!editLayananId) return;
+  const r = layananData.find(x => x.id === editLayananId);
+  if (!r) return;
+
+  if (r.jenisObat === 'puskesmas') {
+    const el = document.getElementById('obat-pusk-edit');
+    if (el) r.obatPuskesmas = el.value.toUpperCase();
+  } else {
+    // Simpan obat dari editObatTemp
+    r.obat = editObatTemp.map(o => ({
+      batchId   : o.batchId || (o.batchIds ? o.batchIds.split(',')[0] : ''),
+      namaObat  : o.namaObat,
+      qty       : o.qty,
+      tglExpired: o.tglExpired || ''
+    }));
+    // Update jenisObat jika sebelumnya kosong
+    if (r.obat.length > 0) r.jenisObat = 'desa';
+  }
+
+  await sv('layanan', layananData);
+  showAlert('al-rekap', '✓ Data obat berhasil diperbarui.', 's');
+  tutupPopupLayanan();
+  renderRekap();
+}
+
+function dlRekap() {
+  const bln = document.getElementById('rekap-bln').value;
+  const thn = document.getElementById('rekap-thn').value;
+
+  let data = layananData
+    .filter(r => (r.jenisObat === 'desa' && r.obat && r.obat.length > 0)
+               || (r.jenisObat === 'puskesmas' && r.obatPuskesmas));
+  if (thn) data = data.filter(r => r.tgl && r.tgl.startsWith(thn));
+  if (bln) data = data.filter(r => r.tgl && r.tgl.slice(5, 7) === bln);
+  data.sort((a, b) => b.tgl.localeCompare(a.tgl));
+
+  if (!data.length) { alert('Belum ada data rekap obat keluar' + (bln || thn ? ' di periode ini' : '') + '.'); return; }
+
+  const rows = [['No','Tanggal','Nama Pasien','Desa','Jenis Layanan','Diagnosa','Obat Diberikan']];
+  data.forEach((r, i) => {
+    const obatStr = r.jenisObat === 'desa'
+      ? r.obat.map(o => o.namaObat + ' x' + o.qty).join(', ')
+      : r.obatPuskesmas || '-';
+    rows.push([i + 1, r.tgl, r.namaPasien, r.desa || '-', r.jenisLayanan, r.diagnosa || '-', obatStr]);
+  });
+
+  const bulanLabel = bln ? BULAN[parseInt(bln) - 1] : 'Semua';
+  const thnLabel   = thn || 'Semua';
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekap Obat Keluar');
+  XLSX.writeFile(wb, 'REKAP_OBAT_KELUAR_' + bulanLabel + '_' + thnLabel + '.xlsx');
+}
+
+// ===================== REKAP LAYANAN =====================
+let editLayananId   = null; // id layanan yang sedang diedit di popup
+let editLayananMode = 'full'; // 'full' = edit semua field, 'obat' = edit obat saja
+
+function initRekLayanan() {
+  const bs = document.getElementById('rl-bln');
+  const ts = document.getElementById('rl-thn');
+  if (!bs.options.length) {
+    BULAN.forEach((m, i) => {
+      bs.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+        + (i+1 === new Date().getMonth()+1 ? ' selected' : '') + '>' + m + '</option>';
+    });
+  }
+  if (!ts.options.length) {
+    const yr = new Date().getFullYear();
+    for (let y = yr; y >= yr - 4; y--) {
+      ts.innerHTML += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + '</option>';
+    }
+  }
+  renderRekLayanan();
+}
+
+function renderRekLayanan() {
+  const wrap   = document.getElementById('reklayanan-wrap');
+  if (!wrap) return;
+  const bln    = document.getElementById('rl-bln').value;
+  const thn    = document.getElementById('rl-thn').value;
+  const filter = (document.getElementById('rl-search').value || '').toLowerCase();
+  const pfx    = thn + '-' + bln;
+
+  const data = layananData
+    .filter(r => r.tgl && r.tgl.startsWith(pfx))
+    .filter(r => !filter || (r.namaPasien || '').toLowerCase().includes(filter))
+    .sort((a, b) => a.tgl.localeCompare(b.tgl));
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">📑</div><p>Tidak ada data layanan di bulan ini.</p></div>';
+    return;
+  }
+
+  const jlbl = {
+    'kunjungan-rumah': '🏠 Kunjungan Rumah',
+    'posyandu'       : '👶 Posyandu',
+    'kantor-desa'    : '🏛 Kantor Desa'
+  };
+
+  let h = '<div class="tw"><table><thead><tr>'
+    + '<th>No</th><th>Tanggal</th><th>Nama</th><th>Jenis Layanan</th>'
+    + '<th>Diagnosa</th><th>Desa</th>'
+    + '</tr></thead><tbody>';
+  data.forEach((r, i) => {
+    h += '<tr style="cursor:pointer" data-id="' + r.id + '" onclick="bukaPopupLayanan(this.dataset.id)"'
+      + ' onmouseover="this.style.background=\'#FEF0F8\'" onmouseout="this.style.background=\'\'">'
+      + '<td style="color:#A07A8E">' + (i+1) + '</td>'
+      + '<td style="white-space:nowrap">' + formatTgl(r.tgl) + '</td>'
+      + '<td><b>' + r.namaPasien + '</b></td>'
+      + '<td style="font-size:12px">' + (jlbl[r.jenisLayanan] || r.jenisLayanan || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.diagnosa || '-') + '</td>'
+      + '<td style="font-size:12px">' + (r.desa || '-') + '</td>'
+      + '</tr>';
+  });
+
+  wrap.innerHTML = h + '</tbody></table></div>';
+}
+
+function bukaPopupLayanan(id) {
+  const r = layananData.find(x => x.id === id);
+  if (!r) return;
+  editLayananId = id;
+  const pm = r.pemeriksaan || {};
+
+  document.getElementById('popup-lay-title').textContent =
+    'Detail Layanan — ' + r.namaPasien + ' (' + formatTgl(r.tgl) + ')';
+
+  const DESA_OPTS = ['','HORODOPI','INEBENGGI','WOITOMBO','WATUPUTE','LAPANGISI','SABI-SABILA','LAMBOTUA','PUUOSU','NELOMBU','ULU MOWEWE'];
+
+  const inp = (id, val, type, label, readonly) =>
+    '<div class="fr"><label>' + label + '</label>'
+    + '<input type="' + type + '" id="el-' + id + '" value="' + (val||'') + '"'
+    + (readonly ? ' readonly' : ' class="uc-input"')
+    + '></div>';
+
+  const selOpts = (id, val, label, opts) =>
+    '<div class="fr"><label>' + label + '</label>'
+    + '<select id="el-' + id + '">'
+    + opts.map(o => '<option value="' + o.v + '"' + (o.v===val?' selected':'') + '>' + o.l + '</option>').join('')
+    + '</select></div>';
+
+  // Obat info (readonly)
+  let obatInfo = '-';
+  if (r.jenisObat === 'desa' && r.obat && r.obat.length) {
+    obatInfo = r.obat.map(o => o.namaObat + ' ×' + o.qty).join(', ');
+  } else if (r.jenisObat === 'puskesmas' && r.obatPuskesmas) {
+    obatInfo = '🏥 ' + r.obatPuskesmas;
+  }
+
+  document.getElementById('popup-lay-body').innerHTML =
+    // Data Pasien
+    '<div style="font-size:11px;font-weight:600;color:#A07A8E;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">👤 Data Pasien</div>'
+    + '<div class="g2">'
+    + inp('tgl',      r.tgl,      'date', 'Tanggal Layanan')
+    + selOpts('jenisLayanan', r.jenisLayanan, 'Jenis Layanan', [
+        {v:'kunjungan-rumah',l:'🏠 Kunjungan Rumah'},
+        {v:'posyandu',       l:'👶 Posyandu'},
+        {v:'kantor-desa',    l:'🏛 Kantor Desa'}
+      ])
+    + inp('namaPasien', r.namaPasien, 'text', 'Nama Pasien')
+    + selOpts('jk', r.jk, 'Jenis Kelamin', [{v:'',l:'-- Pilih --'},{v:'L',l:'Laki-laki'},{v:'P',l:'Perempuan'}])
+    + inp('tglLahir', r.tglLahir, 'date', 'Tanggal Lahir')
+    + inp('umur',     r.umur,     'text', 'Umur')
+    + selOpts('desa', r.desa, 'Desa / Kelurahan',
+        [{v:'',l:'-- Pilih --'}].concat(DESA_OPTS.filter(d=>d).map(d=>({v:d,l:d})))
+      )
+    + inp('nik', r.nik||r.bpjs||'', 'text', 'NIK / BPJS')
+    + '</div>'
+    // Pemeriksaan
+    + '<div style="font-size:11px;font-weight:600;color:#A07A8E;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 10px">🩺 Pemeriksaan Fisik</div>'
+    + '<div class="g4">'
+    + inp('bb',   pm.bb,   'number', 'BB (kg)')
+    + inp('tb',   pm.tb,   'number', 'TB (cm)')
+    + inp('lp',   pm.lp,   'number', 'LP (cm)')
+    + inp('td',   pm.td,   'text',   'TD (mmHg)')
+    + inp('n',    pm.n,    'number', 'Nadi (/mnt)')
+    + inp('s',    pm.s,    'number', 'Suhu (°C)')
+    + inp('p',    pm.p,    'number', 'Pernapasan (/mnt)')
+    + inp('chol', pm.chol, 'number', 'CHOL (mg/dL)')
+    + inp('au',   pm.au,   'number', 'AU (mg/dL)')
+    + inp('gda',  pm.gda,  'number', 'GDA (mg/dL)')
+    + '</div>'
+    // Klinis
+    + '<div style="font-size:11px;font-weight:600;color:#A07A8E;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 10px">📋 Klinis</div>'
+    + '<div class="g2">'
+    + inp('diagnosa', r.diagnosa, 'text', 'Diagnosa / Keluhan')
+    + inp('tindakan', r.tindakan, 'text', 'Tindakan')
+    + '</div>'
+    + '<div class="fr"><label>Obat</label>'
+    + '<input type="text" value="' + obatInfo + '" readonly style="background:#FEF0F8;color:#C0426E"></div>'
+    + inp('catatan', r.catatan, 'text', 'Catatan');
+
+  editLayananMode = 'full';
+  document.getElementById('popup-layanan').style.display = 'flex';
+}
+
+function tutupPopupLayanan() {
+  document.getElementById('popup-layanan').style.display = 'none';
+  editLayananId = null;
+}
+
+async function simpanEditLayanan() {
+  if (!editLayananId) return;
+  const r = layananData.find(x => x.id === editLayananId);
+  if (!r) return;
+
+  const g = id => { const el = document.getElementById('el-' + id); return el ? el.value : ''; };
+
+  r.tgl          = g('tgl');
+  r.jenisLayanan = g('jenisLayanan');
+  r.namaPasien   = g('namaPasien').toUpperCase();
+  r.jk           = g('jk');
+  r.tglLahir     = g('tglLahir');
+  r.umur         = g('umur') || hitungUmur(r.tglLahir);
+  r.desa         = g('desa').toUpperCase();
+  r.nik          = g('nik').toUpperCase();
+  r.diagnosa     = g('diagnosa').toUpperCase();
+  r.tindakan     = g('tindakan').toUpperCase();
+  r.catatan      = g('catatan').toUpperCase();
+  r.pemeriksaan  = {
+    bb: g('bb'), tb: g('tb'), lp: g('lp'), td: g('td'),
+    n : g('n'),  s : g('s'),  p : g('p'),
+    chol: g('chol'), au: g('au'), gda: g('gda')
+  };
+
+  await sv('layanan', layananData);
+  showAlert('al-reklayanan', '✓ Data layanan ' + r.namaPasien + ' berhasil diperbarui.', 's');
+  tutupPopupLayanan();
+  renderRekLayanan();
+}
+
+function dlRekLayanan() {
+  const bln  = document.getElementById('rl-bln').value;
+  const thn  = document.getElementById('rl-thn').value;
+  const pfx  = thn + '-' + bln;
+  const data = layananData.filter(r => r.tgl && r.tgl.startsWith(pfx))
+    .sort((a, b) => a.tgl.localeCompare(b.tgl));
+
+  if (!data.length) { alert('Tidak ada data di bulan ini.'); return; }
+
+  const rows = [['No','Tanggal','Nama','Desa','JK','Umur','Layanan',
+    'BB','TB','LP','TD','N','S','P','CHOL','AU','GDA',
+    'Diagnosa','Tindakan','Jenis Obat','Obat','Catatan']];
+  data.forEach((r, i) => {
+    const pm = r.pemeriksaan || {};
+    const obat = r.jenisObat === 'desa'
+      ? (r.obat || []).map(o => o.namaObat + '×' + o.qty).join(', ')
+      : r.obatPuskesmas
+        ? r.obatPuskesmas.split('\n').map(o => o.trim()).filter(o => o).join('; ')
+        : '-';
+    rows.push([i+1, r.tgl, r.namaPasien, r.desa||'-', r.jk||'-', r.umur||'-',
+      r.jenisLayanan, pm.bb||'-', pm.tb||'-', pm.lp||'-', pm.td||'-',
+      pm.n||'-', pm.s||'-', pm.p||'-', pm.chol||'-', pm.au||'-', pm.gda||'-',
+      r.diagnosa||'-', r.tindakan||'-', r.jenisObat, obat, r.catatan||'-']);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekap Layanan');
+  XLSX.writeFile(wb, 'REKAP_LAYANAN_' + BULAN[parseInt(bln)-1] + '_' + thn + '.xlsx');
+}
+
+
+// ===================== REKAP BULANAN =====================
+function initLap() {
+  const bs = document.getElementById('lapbln');
+  const ts = document.getElementById('lapthn');
+  if (!bs || bs.options.length) return;
+  BULAN.forEach((m, i) => {
+    bs.innerHTML += '<option value="' + String(i+1).padStart(2,'0') + '"'
+      + (i+1 === new Date().getMonth()+1 ? ' selected' : '') + '>' + m + '</option>';
+  });
+  const yr = new Date().getFullYear();
+  for (let y = yr; y >= yr - 3; y--)
+    ts.innerHTML += '<option value="' + y + '"' + (y===yr?' selected':'') + '>' + y + '</option>';
+}
+
+function renderLap() {
+  const bln = String(document.getElementById('lapbln').value).padStart(2,'0');
+  const thn = document.getElementById('lapthn').value;
+  const pfx = thn + '-' + bln;
+  const bn  = BULAN[parseInt(bln)-1];
+
+  const masuk  = batches.filter(b => b.tglMasuk && b.tglMasuk.startsWith(pfx));
+  const keluar = layananData.filter(r => r.tgl && r.tgl.startsWith(pfx)
+    && r.jenisObat === 'desa' && r.obat && r.obat.length > 0);
+  const buang  = buangData.filter(d => d.tgl && d.tgl.startsWith(pfx));
+
+  const tm = masuk.reduce((a, b) => a + b.jumlah, 0);
+  const tk = keluar.reduce((a, r) => a + r.obat.reduce((x, o) => x + o.qty, 0), 0);
+  const tb = buang.reduce((a, d) => a + d.jumlah, 0);
+
+  const mkStat = (label, val, color) =>
+    '<div class="card" style="margin-bottom:0;padding:14px 16px;border-left:3px solid ' + color + '">'
+    + '<div style="font-size:11px;color:#A07A8E;font-weight:500;margin-bottom:3px">' + label + '</div>'
+    + '<div style="font-size:26px;font-weight:600;color:' + color + ';line-height:1">' + val + '</div></div>';
+
+  let h = '<div class="g3" style="margin-bottom:16px">'
+    + mkStat('Obat Masuk ' + bn, tm, '#C0426E')
+    + mkStat('Obat Keluar ' + bn, tk, '#854F0B')
+    + mkStat('Obat Dibuang ' + bn, tb, '#A32D2D')
+    + '</div>';
+
+  const mkT = (title, cols, rows) => {
+    let s = '<div style="font-size:12px;font-weight:600;color:#A07A8E;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.06em">' + title + '</div>';
+    if (!rows.length) return s + '<div class="empty" style="padding:14px"><p>Tidak ada data.</p></div>';
+    s += '<div class="tw"><table><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+    rows.forEach(r => { s += '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>'; });
+    return s + '</tbody></table></div>';
+  };
+
+  h += mkT('Rincian Obat Masuk',
+    ['Nama Obat','Jumlah','Tgl Masuk','Tgl Expired'],
+    masuk.map(b => [b.namaObat, b.jumlah, formatTgl(b.tglMasuk), formatTgl(b.tglExpired)])
+  );
+  h += mkT('Rincian Obat Keluar (Obat Desa)',
+    ['Tanggal','Nama Pasien','Desa','Diagnosa','Obat'],
+    keluar.map(r => [formatTgl(r.tgl), '<b>' + r.namaPasien + '</b>', r.desa||'-', r.diagnosa||'-',
+      r.obat.map(o => o.namaObat + ' x' + o.qty).join(', ')])
+  );
+  h += mkT('Rincian Obat Dibuang/Expired',
+    ['Tanggal','Nama Obat','Jumlah','Alasan','Catatan'],
+    buang.map(d => [formatTgl(d.tgl), '<b>' + d.namaObat + '</b>', d.jumlah,
+      '<span class="badge bg-red">' + (d.alasan||'-') + '</span>', d.catatan||'-'])
+  );
+
+  document.getElementById('lapwrap').innerHTML = h;
+}
+
+function dlLap() {
+  const bln = String(document.getElementById('lapbln').value).padStart(2,'0');
+  const thn = document.getElementById('lapthn').value;
+  const pfx = thn + '-' + bln;
+  const bn  = BULAN[parseInt(bln)-1];
+
+  const masuk  = batches.filter(b => b.tglMasuk && b.tglMasuk.startsWith(pfx));
+  const keluar = layananData.filter(r => r.tgl && r.tgl.startsWith(pfx)
+    && r.jenisObat === 'desa' && r.obat && r.obat.length > 0);
+  const buang  = buangData.filter(d => d.tgl && d.tgl.startsWith(pfx));
+
+  const wb = XLSX.utils.book_new();
+  const mk = [['Nama Obat','Jumlah','Tgl Masuk','Tgl Expired']];
+  masuk.forEach(b => mk.push([b.namaObat, b.jumlah, b.tglMasuk, b.tglExpired||'-']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mk), 'Obat Masuk');
+  const kl = [['Tanggal','Nama Pasien','Desa','Diagnosa','Obat']];
+  keluar.forEach(r => kl.push([r.tgl, r.namaPasien, r.desa||'-', r.diagnosa||'-',
+    r.obat.map(o => o.namaObat + '(' + o.qty + ')').join(';')]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(kl), 'Obat Keluar');
+  const bg = [['Tanggal','Nama Obat','Jumlah','Alasan','Catatan']];
+  buang.forEach(d => bg.push([d.tgl, d.namaObat, d.jumlah, d.alasan||'-', d.catatan||'-']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bg), 'Obat Dibuang');
+  XLSX.writeFile(wb, 'REKAP_' + bn.toUpperCase() + '_' + thn + '.xlsx');
+}
+
+
+// ===================== JADWAL SHIFT =====================
+const SHIFT_CYCLE = ['Siang','Pagi','Malam','Libur1','Libur2'];
+const SHIFT_STYLE = {
+  'Siang':  {bg:'#FFF3CD', color:'#856404', label:'☀️ Siang'},
+  'Pagi':   {bg:'#FFE4F0', color:'#9B2D6F', label:'🌅 Pagi'},
+  'Malam':  {bg:'#E8E0FF', color:'#5B3DB5', label:'🌙 Malam'},
+  'Libur1': {bg:'#FFE8D6', color:'#8B4513', label:'😴 Libur 1'},
+  'Libur2': {bg:'#E8F5E9', color:'#2E7D32', label:'🌿 Libur 2'},
+};
+let shiftYear  = new Date().getFullYear();
+let shiftMonth = new Date().getMonth(); // 0-based
+let catatanTgl = null;
+
+
+async function loadShiftData(){
+  const raw = await ld('shiftdata');
+  shiftData = (Array.isArray(raw) ? {} : raw) || {};
+}
+
+async function saveShiftData(){
+  // shiftData is object not array, so wrap for sv compatibility
+  await db.collection('stok-obat-asri').doc('shared__shiftdata').set({
+    d: JSON.stringify(shiftData), t: Date.now()
+  });
+}
+
+function shiftMonthKey(y, m){
+  return y+'-'+String(m+1).padStart(2,'0');
+}
+
+function getShiftForDay(y, m, tgl){
+  const key = shiftMonthKey(y, m);
+  const data = shiftData[key];
+  if(!data || !data.tgl1Shift) return null;
+  const startIdx = SHIFT_CYCLE.indexOf(data.tgl1Shift);
+  if(startIdx < 0) return null;
+  const dayOffset = tgl - 1;
+  return SHIFT_CYCLE[(startIdx + dayOffset) % SHIFT_CYCLE.length];
+}
+
+function renderShift(){
+  const key = shiftMonthKey(shiftYear, shiftMonth);
+  const label = BULAN[shiftMonth] + ' ' + shiftYear;
+  document.getElementById('shift-month-label').textContent = label;
+
+  const grid = document.getElementById('shift-cal-grid');
+  const firstDay = new Date(shiftYear, shiftMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(shiftYear, shiftMonth+1, 0).getDate();
+  const today = new Date();
+  const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  let html = '';
+
+  // Empty cells before first day
+  for(let i=0; i<firstDay; i++){
+    html += '<div></div>';
+  }
+
+  const catData = (shiftData[key] && shiftData[key].catatan) || {};
+
+  for(let d=1; d<=daysInMonth; d++){
+    const shift = getShiftForDay(shiftYear, shiftMonth, d);
+    const st = shift ? SHIFT_STYLE[shift] : null;
+    const dateStr = shiftYear+'-'+String(shiftMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday = dateStr === todayStr;
+    const hasCatatan = catData[d] && catData[d].trim() !== '';
+
+    const bg    = st ? st.bg    : '#F9F9F9';
+    const color = st ? st.color : '#999';
+    const lbl   = st ? st.label.split(' ').slice(1).join(' ') : '';
+    const icon  = st ? st.label.split(' ')[0] : '';
+
+    html += `<div onclick="bukaHariPopup(${d})"
+      style="border-radius:8px;padding:4px 2px;text-align:center;cursor:pointer;
+             background:${bg};border:${isToday?'2px solid #C0426E':'1.5px solid rgba(0,0,0,0.06)'};
+             min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+             position:relative;transition:opacity .15s;overflow:hidden"
+      onmouseover="this.style.opacity='.82'" onmouseout="this.style.opacity='1'">
+      <!-- Dot catatan pojok kiri atas -->
+      ${hasCatatan?`<div style="position:absolute;top:3px;left:4px;width:6px;height:6px;background:#C0426E;border-radius:50%"></div>`:''}
+      <!-- Kegiatan icons pojok kanan (atas ke bawah) -->
+      ${(()=>{
+        const keg=(shiftData[key]&&shiftData[key].kegiatan&&shiftData[key].kegiatan[d])||[];
+        const icons={'kantordesa':'🏛','posyandu':'👶','merujuk':'🚑'};
+        if(!keg.length) return '';
+        return `<div style="position:absolute;top:0;right:2px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;padding:3px 0">${keg.map(k=>`<span style="font-size:9px;line-height:1">${icons[k]||''}</span>`).join('')}</div>`;
+      })()}
+      <!-- Tengah: tanggal + shift -->
+      <div style="font-size:13px;font-weight:700;color:${isToday?'#C0426E':color}">${d}</div>
+      ${icon?`<div style="font-size:12px;line-height:1">${icon}</div>`:''}
+      ${lbl?`<div style="font-size:8px;font-weight:600;color:${color};line-height:1.2;margin-top:1px">${lbl}</div>`:''}
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+  renderRekapKegiatan();
+}
+
+function shiftPrevMonth(){
+  shiftMonth--;
+  if(shiftMonth < 0){ shiftMonth=11; shiftYear--; }
+  renderShift();
+}
+
+function shiftNextMonth(){
+  shiftMonth++;
+  if(shiftMonth > 11){ shiftMonth=0; shiftYear++; }
+  renderShift();
+}
+
+function bukaModifShift(){
+  document.getElementById('popup-modif').style.display='flex';
+}
+
+async function setShiftTgl1(shift){
+  const key = shiftMonthKey(shiftYear, shiftMonth);
+  if(!shiftData[key]) shiftData[key]={catatan:{}};
+  shiftData[key].tgl1Shift = shift;
+  await saveShiftData();
+  document.getElementById('popup-modif').style.display='none';
+  renderShift();
+  showAl('al-shift','✓ Shift tgl 1 diset ke '+SHIFT_STYLE[shift].label,'s');
+}
+
+function bukaHariPopup(tgl){
+  const key = shiftMonthKey(shiftYear, shiftMonth);
+  const shift = getShiftForDay(shiftYear, shiftMonth, tgl);
+  const st = shift ? SHIFT_STYLE[shift] : null;
+  catatanTgl = tgl;
+
+  document.getElementById('popup-catatan-title').textContent =
+    tgl+' '+BULAN[shiftMonth]+' '+shiftYear;
+  document.getElementById('popup-catatan-shift').innerHTML = st
+    ? `<span style="background:${st.bg};color:${st.color};border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600">${st.label}</span>`
+    : '<span style="color:#999;font-size:12px">Shift belum diset</span>';
+
+  const catData = (shiftData[key] && shiftData[key].catatan) || {};
+  document.getElementById('catatan-input').value = catData[tgl] || '';
+  // Restore kegiatan toggles
+  const keg = (shiftData[key] && shiftData[key].kegiatan && shiftData[key].kegiatan[tgl]) || [];
+  ['kantordesa','posyandu','merujuk'].forEach(k=>{
+    const btn = document.getElementById('btn-'+k);
+    if(keg.includes(k)){
+      btn.style.background = btn.style.borderColor.includes('C0426E')||k==='kantordesa'?'#FDECF5':k==='posyandu'?'#E8F5E9':'#E3F0FF';
+      btn.style.opacity='1';
+      btn.dataset.active='1';
+    } else {
+      btn.style.background='white'; btn.style.opacity='.7'; btn.dataset.active='';
+    }
+  });
+  document.getElementById('popup-catatan').style.display='flex';
+  setTimeout(()=>document.getElementById('catatan-input').focus(), 200);
+}
+
+function toggleKegiatan(k){
+  const btn = document.getElementById('btn-'+k);
+  const isActive = btn.dataset.active==='1';
+  if(isActive){
+    btn.style.background='white'; btn.style.opacity='.7'; btn.dataset.active='';
+  } else {
+    const bgMap={kantordesa:'#FDECF5',posyandu:'#E8F5E9',merujuk:'#E3F0FF'};
+    btn.style.background=bgMap[k]; btn.style.opacity='1'; btn.dataset.active='1';
+  }
+}
+
+function tutupCatatanPopup(){
+  document.getElementById('popup-catatan').style.display='none';
+  catatanTgl = null;
+}
+
+async function simpanCatatan(){
+  if(!catatanTgl) return;
+  const key = shiftMonthKey(shiftYear, shiftMonth);
+  if(!shiftData[key]) shiftData[key]={catatan:{},kegiatan:{}};
+  if(!shiftData[key].catatan) shiftData[key].catatan={};
+  if(!shiftData[key].kegiatan) shiftData[key].kegiatan={};
+  // Save catatan
+  const val = document.getElementById('catatan-input').value.trim();
+  if(val) shiftData[key].catatan[catatanTgl] = val;
+  else delete shiftData[key].catatan[catatanTgl];
+  // Save kegiatan
+  const keg = ['kantordesa','posyandu','merujuk'].filter(k=>document.getElementById('btn-'+k).dataset.active==='1');
+  if(keg.length) shiftData[key].kegiatan[catatanTgl] = keg;
+  else delete shiftData[key].kegiatan[catatanTgl];
+  await saveShiftData();
+  tutupCatatanPopup();
+  renderShift();
+  renderRekapKegiatan();
+}
+
+function renderRekapKegiatan(){
+  const wrap = document.getElementById('shift-rekap-wrap');
+  if(!wrap) return;
+  const key = shiftMonthKey(shiftYear, shiftMonth);
+  const kegData = (shiftData[key] && shiftData[key].kegiatan) || {};
+  const KEG_LIST = [
+    {id:'kantordesa', label:'🏛 Kantor Desa', color:'#C0426E', bg:'#FDECF5'},
+    {id:'posyandu',   label:'👶 Posyandu',   color:'#2E7D32', bg:'#E8F5E9'},
+    {id:'merujuk',    label:'🚑 Merujuk',    color:'#1565C0', bg:'#E3F0FF'},
+  ];
+  // Check if any kegiatan exists
+  const hasAny = Object.values(kegData).some(v=>v&&v.length>0);
+  if(!hasAny){ wrap.innerHTML=''; return; }
+
+  let html = '<div class="ctitle" style="margin-bottom:10px">📊 Rekap Kegiatan Bulan Ini</div>';
+  KEG_LIST.forEach(({id,label,color,bg})=>{
+    const tgls = Object.entries(kegData)
+      .filter(([t,v])=>v&&v.includes(id))
+      .map(([t])=>Number(t))
+      .sort((a,b)=>a-b);
+    if(!tgls.length) return;
+    html += `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding:10px 12px;background:${bg};border-radius:10px">
+      <div style="flex-shrink:0">
+        <div style="font-size:13px;font-weight:700;color:${color}">${label}</div>
+        <div style="font-size:12px;color:${color};opacity:.8;margin-top:1px">${tgls.length}x dalam bulan ini</div>
+      </div>
+      <div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">
+        ${tgls.map(t=>`<span style="background:${color};color:white;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600">${t}</span>`).join('')}
+      </div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+
+// Helper: format obat puskesmas multi-baris jadi bullets
+function formatObatPusk(obatPusk) {
+  if (!obatPusk) return '';
+  const lines = obatPusk.split('\n').map(o => o.trim()).filter(o => o);
+  if (lines.length <= 1) return obatPusk;
+  return lines.map(o => '• ' + o).join('\n');
+}
+
+// Helper: format tindakan/obat untuk kolom RJTP
+function formatTindakanObat(tindakan, jenisObat, obat, obatPuskesmas) {
+  const parts = [];
+  if (tindakan) parts.push(tindakan);
+  if (jenisObat === 'desa' && obat && obat.length) {
+    obat.forEach(o => parts.push('• ' + o.namaObat + ' ' + o.qty));
+  } else if (jenisObat === 'puskesmas' && obatPuskesmas) {
+    const lines = obatPuskesmas.split('\n').map(o => o.trim()).filter(o => o);
+    lines.forEach(o => parts.push('• ' + o));
+  }
+  return parts.join('\n');
+}
+
+// ===================== BOOT =====================
+window.addEventListener('load', function () {
+  // Login
+  document.getElementById('login-pass').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') cekLogin();
+  });
+  document.getElementById('login-btn').addEventListener('click', cekLogin);
+  document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(() => document.getElementById('login-pass').focus(), 150);
+
+  // Popup layanan backdrop
+  document.getElementById('popup-layanan').addEventListener('click', function(e) {
+    if (e.target === this) tutupPopupLayanan();
+  });
+
+  // RJTP modal backdrop
+  const rjtpModalOv = document.getElementById('rjtp-modal-ov');
+  if (rjtpModalOv) rjtpModalOv.addEventListener('click', function(e) {
+    if (e.target === this) closeRjtpModal();
+  });
+
+  // Popup modif & catatan backdrop
+  const popModif = document.getElementById('popup-modif');
+  if (popModif) popModif.addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+  const popCat = document.getElementById('popup-catatan');
+  if (popCat) popCat.addEventListener('click', function(e) {
+    if (e.target === this) tutupCatatanPopup();
+  });
+
+  // Tutup autocomplete saat klik di luar
+  document.addEventListener('click', function(e) {
+    const list = document.getElementById('autocomplete-list');
+    if (list && !e.target.closest('#wrap-search-pasien')) {
+      list.style.display = 'none';
+    }
+  });
+
+  // Auto-uppercase untuk .uc-input
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('uc-input') && e.target.type !== 'date' && e.target.type !== 'number') {
+      const pos = e.target.selectionStart;
+      e.target.value = e.target.value.toUpperCase();
+      e.target.setSelectionRange(pos, pos);
+    }
+  });
+});
+</script>
+
+
+
+
+
+
+<!-- RJTP PREVIEW MODAL -->
+<div class="rmod-ov" id="rjtp-modal-ov">
+  <div class="rmod">
+    <div class="rmod-hd">
+      <h3 id="rjtp-modal-title">Pratinjau PDF RJTP</h3>
+      <div class="fg">
+        <button class="btn btn-p btn-sm" onclick="rjtpDownloadPDF()">⬇ Unduh PDF</button>
+        <button class="btn btn-sm" onclick="closeRjtpModal()">✕ Tutup</button>
+      </div>
+    </div>
+    <div class="rmod-bd" id="rjtp-modal-bd"><div style="color:#A07A8E;font-size:13px;padding:40px">Memuat pratinjau...</div></div>
+    <div class="rmod-ft">
+      <span id="rjtp-modal-info">—</span>
+      <span>Scroll untuk melihat semua halaman</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== RJTP =====================
+var RJTP_BULAN_NAMA=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var RJTP_BULAN_UP=['','JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+var rjtpRowIdCtr=0,rjtpRowIds=[],rjtpAutoIds=new Set();
+
+function initRjtp(){
+  const thn=document.getElementById('rjtp-tahun');
+  if(!thn.value) thn.value=new Date().getFullYear();
+  const bln=document.getElementById('rjtp-bulan');
+  if(!bln.value) bln.value=String(new Date().getMonth()+1);
+  onRjtpParamChange();
+  rjtpUpdateUI();
+}
+
+function onRjtpParamChange(){
+  const desa=document.getElementById('rjtp-desa').value;
+  const afWrap=document.getElementById('rjtp-autofill-wrap');
+  afWrap.style.display=(desa==='SABI-SABILA')?'block':'none';
+  if(desa!=='SABI-SABILA') document.getElementById('rjtp-info-bar').style.display='none';
+  // Update opsi tanggal di baris yang sudah ada
+  const m=document.getElementById('rjtp-bulan').value;
+  const y=document.getElementById('rjtp-tahun').value;
+  if(m&&y){
+    const opts=rjtpBuildTglOpts(m,y);
+    document.querySelectorAll('select.rjtp-tgl-sel').forEach(s=>{const cur=s.value;s.innerHTML=opts;s.value=cur;});
+  }
+  rjtpUpdateUI();
+}
+
+function rjtpBuildTglOpts(m,y){
+  const days=new Date(parseInt(y),parseInt(m),0).getDate();
+  let o='<option value="">-- Pilih --</option>';
+  for(let i=1;i<=days;i++){
+    const dd=String(i).padStart(2,'0'),mm=String(m).padStart(2,'0');
+    o+='<option value="'+y+'-'+mm+'-'+dd+'">'+dd+' '+RJTP_BULAN_NAMA[parseInt(m)]+' '+y+'</option>';
+  }
+  return o;
+}
+
+function rjtpV(f,id){const e=document.getElementById(f+'_'+id);return e?e.value.trim():'';}
+function rjtpEq(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function rjtpAddRow(data,isAuto){
+  data=data||{};isAuto=isAuto||false;
+  rjtpRowIdCtr++;
+  const id=rjtpRowIdCtr;
+  rjtpRowIds.push(id);
+  if(isAuto) rjtpAutoIds.add(id);
+  const m=document.getElementById('rjtp-bulan').value||String(new Date().getMonth()+1);
+  const y=document.getElementById('rjtp-tahun').value||String(new Date().getFullYear());
+  const tOpts=rjtpBuildTglOpts(m,y);
+  const tr=document.createElement('tr');
+  tr.id='rjtp-row_'+id;
+  if(isAuto) tr.className='auto-row';
+  tr.innerHTML=
+    '<td class="rc-no" style="font-size:11px;color:#A07A8E;font-weight:600">'+rjtpRowIds.length+(isAuto?'<br><span style="font-size:9px;color:#C0426E">auto</span>':'')+'</td>'+
+    '<td class="rc-tgl"><select id="rtgl_'+id+'" class="rci sel rjtp-tgl-sel" style="font-size:10px;padding-right:14px">'+tOpts+'</select></td>'+
+    '<td class="rc-id"><input id="rnomor_'+id+'" class="rci left" value="'+rjtpEq(data.nomor||'')+'" oninput="this.value=this.value.toUpperCase()"></td>'+
+    '<td class="rc-nm"><input id="rnama_'+id+'" class="rci left" value="'+rjtpEq(data.nama||'')+'" oninput="this.value=this.value.toUpperCase()"></td>'+
+    '<td class="rc-sm"><input id="rumur_'+id+'" class="rci" type="number" value="'+rjtpEq(data.umur||'')+'" min="0" max="150"></td>'+
+    '<td class="rc-jk"><select id="rjk_'+id+'" class="rci sel"><option value=""'+((!data.jk)?' selected':'')+' disabled></option><option value="L"'+(data.jk==='L'?' selected':'')+'>L</option><option value="P"'+(data.jk==='P'?' selected':'')+'>P</option></select></td>'+
+    '<td class="rc-sm"><input id="rbb_'+id+'" class="rci" type="number" value="'+rjtpEq(data.bb||'')+'" step="0.1"></td>'+
+    '<td class="rc-sm"><input id="rtb_'+id+'" class="rci" type="number" value="'+rjtpEq(data.tb||'')+'"></td>'+
+    '<td class="rc-sm"><input id="rlp_'+id+'" class="rci" type="number" value="'+rjtpEq(data.lp||'')+'"></td>'+
+    '<td class="rc-td"><div class="td-spl"><input id="rsistol_'+id+'" class="rci" type="number" value="'+rjtpEq(data.sistol||'')+'"><span>/</span><input id="rdiastol_'+id+'" class="rci" type="number" value="'+rjtpEq(data.diastol||'')+'"></div></td>'+
+    '<td class="rc-sm"><input id="rnadi_'+id+'" class="rci" type="number" value="'+rjtpEq(data.nadi||'')+'"></td>'+
+    '<td class="rc-sm"><input id="rsuhu_'+id+'" class="rci" value="'+rjtpEq(data.suhu||'')+'"></td>'+
+    '<td class="rc-sm"><input id="rrr_'+id+'" class="rci" type="number" value="'+rjtpEq(data.rr||'')+'"></td>'+
+    '<td class="rc-sm"><input id="rchol_'+id+'" class="rci" type="number" value="'+rjtpEq(data.chol||'')+'"></td>'+
+    '<td class="rc-sm"><input id="rau_'+id+'" class="rci" value="'+rjtpEq(data.au||'')+'"></td>'+
+    '<td class="rc-sm"><input id="rgda_'+id+'" class="rci" type="number" value="'+rjtpEq(data.gda||'')+'"></td>'+
+    '<td class="rc-tx" style="vertical-align:top;padding:2px 3px"><textarea id="rdiag_'+id+'" class="rci-ta" rows="2" oninput="this.value=this.value.toUpperCase()">'+rjtpEq(data.diag||'')+'</textarea></td>'+
+    '<td class="rc-tx" style="vertical-align:top;padding:2px 3px"><textarea id="rther_'+id+'" class="rci-ta" rows="2" oninput="this.value=this.value.toUpperCase()">'+rjtpEq(data.ther||'')+'</textarea></td>'+
+    '<td class="rc-kj"><select id="rkunj_'+id+'" class="rci sel"><option value=""'+((!data.kunj)?' selected':'')+' disabled></option><option value="LAMA"'+(data.kunj==='LAMA'?' selected':'')+'>LAMA</option><option value="BARU"'+(data.kunj==='BARU'?' selected':'')+'>BARU</option></select></td>'+
+    '<td class="rc-ac"><button class="rdel-btn" onclick="rjtpDeleteRow('+id+')" title="Hapus">✕</button></td>';
+  document.getElementById('rjtp-tbody').appendChild(tr);
+  if(data.tgl){const s=document.getElementById('rtgl_'+id);if(s)s.value=data.tgl;}
+  rjtpUpdateUI();
+}
+
+function rjtpDeleteRow(id){
+  const idx=rjtpRowIds.indexOf(id);if(idx>-1)rjtpRowIds.splice(idx,1);
+  rjtpAutoIds.delete(id);
+  const tr=document.getElementById('rjtp-row_'+id);if(tr)tr.remove();
+  rjtpRenumber();rjtpUpdateUI();
+}
+function rjtpAddMultiple(){for(let i=0;i<5;i++)rjtpAddRow();}
+function rjtpClearManual(){
+  const manualIds=rjtpRowIds.filter(id=>!rjtpAutoIds.has(id));
+  if(!manualIds.length){alert('Tidak ada baris manual untuk dihapus.');return;}
+  if(!confirm('Hapus '+manualIds.length+' baris manual? Baris auto-fill tetap ada.'))return;
+  manualIds.forEach(id=>{rjtpRowIds.splice(rjtpRowIds.indexOf(id),1);const tr=document.getElementById('rjtp-row_'+id);if(tr)tr.remove();});
+  rjtpRenumber();rjtpUpdateUI();
+}
+function rjtpClearAll(){
+  if(!rjtpRowIds.length)return;
+  if(!confirm('Hapus semua '+rjtpRowIds.length+' baris?'))return;
+  rjtpRowIds.length=0;rjtpAutoIds.clear();document.getElementById('rjtp-tbody').innerHTML='';rjtpUpdateUI();
+}
+function rjtpRenumber(){
+  document.getElementById('rjtp-tbody').querySelectorAll('tr').forEach((tr,i)=>{
+    const nc=tr.querySelector('td:first-child');if(!nc)return;
+    const isAuto=tr.classList.contains('auto-row');
+    nc.innerHTML=(i+1)+(isAuto?'<br><span style="font-size:9px;color:#C0426E">auto</span>':'');
+  });
+}
+function rjtpUpdateUI(){
+  const n=rjtpRowIds.length,na=rjtpAutoIds.size,nm=n-na;
+  document.getElementById('rjtp-row-badge').textContent=n+' pasien'+(na?' ('+na+' auto, '+nm+' manual)':'');
+  document.getElementById('rjtp-hint').textContent=n>0?'Total '+n+' data pasien'+(na?' · '+na+' dari rekap layanan SABI-SABILA':''):'Pilih bulan, tahun, dan desa terlebih dahulu.';
+}
+function rjtpCollect(){
+  return rjtpRowIds.map(id=>{
+    const s=rjtpV('rsistol',id),d=rjtpV('rdiastol',id);
+    return{tgl:rjtpV('rtgl',id),nomor:rjtpV('rnomor',id),nama:rjtpV('rnama',id),umur:rjtpV('rumur',id),jk:rjtpV('rjk',id),bb:rjtpV('rbb',id),tb:rjtpV('rtb',id),lp:rjtpV('rlp',id),td:s&&d?s+'/'+d:(s||d||''),nadi:rjtpV('rnadi',id),suhu:rjtpV('rsuhu',id),rr:rjtpV('rrr',id),chol:rjtpV('rchol',id),au:rjtpV('rau',id),gda:rjtpV('rgda',id),diag:rjtpV('rdiag',id),ther:rjtpV('rther',id),kunj:rjtpV('rkunj',id)};
+  }).sort((a,b)=>(a.tgl||'').localeCompare(b.tgl||''));
+}
+
+// ---- AUTO-FILL SABI-SABILA ----
+function autoFillRjtp(){
+  const bln=document.getElementById('rjtp-bulan').value;
+  const thn=document.getElementById('rjtp-tahun').value;
+  if(!bln||!thn){showAlert('al-rjtp','Pilih bulan dan tahun terlebih dahulu.','e');return;}
+  const pfx=thn+'-'+String(bln).padStart(2,'0');
+  const filtered=layananData.filter(r=>r.desa==='SABI-SABILA'&&r.tgl&&r.tgl.startsWith(pfx)).sort((a,b)=>a.tgl.localeCompare(b.tgl));
+  if(!filtered.length){showAlert('al-rjtp','Tidak ada data layanan SABI-SABILA untuk '+RJTP_BULAN_NAMA[parseInt(bln)]+' '+thn+'.','e');return;}
+  // Hapus baris auto lama
+  [...rjtpAutoIds].forEach(id=>{
+    const idx=rjtpRowIds.indexOf(id);if(idx>-1)rjtpRowIds.splice(idx,1);
+    rjtpAutoIds.delete(id);
+    const tr=document.getElementById('rjtp-row_'+id);if(tr)tr.remove();
+  });
+  // Tambah dari data
+  filtered.forEach(r=>{
+    const pm=r.pemeriksaan||{};
+    let sistol='',diastol='';
+    if(pm.td&&pm.td.includes('/')){const p=pm.td.split('/');sistol=p[0].trim();diastol=p[1].trim();}
+    let umurNum='';if(r.umur){const m=r.umur.match(/\d+/);if(m)umurNum=parseInt(m[0]);}
+    // Bangun terapi: tindakan + bullet obat
+    let therLines=[];
+    if(r.tindakan&&r.tindakan.trim()) therLines.push(r.tindakan.trim().toUpperCase());
+    if(r.jenisObat==='desa'&&r.obat&&r.obat.length){r.obat.forEach(o=>{therLines.push('• '+o.namaObat.toUpperCase()+' ×'+o.qty);});}
+    else if(r.jenisObat==='puskesmas'&&r.obatPuskesmas){therLines.push('• '+r.obatPuskesmas.toUpperCase());}
+    rjtpAddRow({tgl:r.tgl,nomor:r.bpjs||r.nik||r.nomor||'',nama:r.namaPasien,umur:umurNum,jk:r.jk,bb:pm.bb,tb:pm.tb,lp:pm.lp,sistol,diastol,nadi:pm.n,suhu:pm.s,rr:pm.p,chol:pm.chol,au:pm.au,gda:pm.gda,diag:r.diagnosa,ther:therLines.join('\n'),kunj:r.jenisKunjungan==='baru'?'BARU':'LAMA'},true);
+  });
+  rjtpRenumber();
+  document.getElementById('rjtp-info-text').textContent=filtered.length+' data pasien SABI-SABILA '+RJTP_BULAN_NAMA[parseInt(bln)]+' '+thn+' berhasil dimuat. Baris "auto" tetap bisa diedit manual.';
+  document.getElementById('rjtp-info-bar').style.display='flex';
+  showAlert('al-rjtp','✓ '+filtered.length+' data SABI-SABILA berhasil dimuat ke tabel RJTP.','s');
+}
+
+// ---- VALIDASI ----
+function rjtpValidate(){
+  if(!document.getElementById('rjtp-bulan').value){showAlert('al-rjtp','Pilih bulan terlebih dahulu.','e');return false;}
+  if(!document.getElementById('rjtp-tahun').value){showAlert('al-rjtp','Isi tahun terlebih dahulu.','e');return false;}
+  if(!document.getElementById('rjtp-desa').value){showAlert('al-rjtp','Pilih desa/kelurahan terlebih dahulu.','e');return false;}
+  return true;
+}
+function rjtpSetProgress(n){document.getElementById('rjtp-pb').style.width=n+'%';}
+function rjtpShowProgress(){document.getElementById('rjtp-pw').classList.add('show');}
+function rjtpHideProgress(){setTimeout(()=>{document.getElementById('rjtp-pw').classList.remove('show');rjtpSetProgress(0);},700);}
+
+// ---- BUILD PDF ----
+function rjtpBuildPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const PW=297,PH=210,ML=8,MR=8,MT=8,MB=8,CW=PW-ML-MR;
+  const bulanNum=parseInt(document.getElementById('rjtp-bulan').value);
+  const tahun=document.getElementById('rjtp-tahun').value;
+  const desa=document.getElementById('rjtp-desa').value.toUpperCase();
+  const data=rjtpCollect();
+  const FONT='helvetica';
+  const T=(txt,x,y,opts)=>doc.text(String(txt==null?'':txt),x,y,opts||{});
+  const SF=(style,sz)=>{doc.setFont(FONT,style);doc.setFontSize(sz);};
+  const TC=(r,g,b)=>doc.setTextColor(r,g,b);
+  const DC=(r,g,b)=>doc.setDrawColor(r,g,b);
+  const LW=w=>doc.setLineWidth(w);
+  // Header
+  let y=MT;TC(15,23,42);
+  SF('bold',12);T('LAPORAN PELAYANAN',PW/2,y,{align:'center'});y+=5.5;
+  SF('bold',10);T('RAWAT JALAN TINGKAT PERTAMA (RJTP)',PW/2,y,{align:'center'});y+=5;
+  SF('normal',8.5);T('BULAN '+RJTP_BULAN_UP[bulanNum]+'    TAHUN '+tahun,PW/2,y,{align:'center'});y+=12;
+  SF('normal',8);
+  const lblX=ML,colX=ML+42,valX=ML+45;
+  T('NAMA FASKES',lblX,y);T(':',colX,y);T('UPTD PUSKESMAS MOWEWE',valX,y);y+=4.5;
+  T('ALAMAT',lblX,y);T(':',colX,y);T('KECAMATAN MOWEWE',valX,y);y+=4.5;
+  T('NAMA DESA/KELURAHAN',lblX,y);T(':',colX,y);T(desa,valX,y);y+=6;
+  // Kolom: total = CW = 281
+  const W={no:5,tgl:18,id:30,nama:27,umur:7,jk:6,bb:7,tb:7,lp:7,td:15,nadi:8,suhu:8,rr:8,chol:9,au:9,gda:9,diag:40,ther:43,kunj:18};
+  const COL_ORDER=['no','tgl','id','nama','umur','jk','bb','tb','lp','td','nadi','suhu','rr','chol','au','gda','diag','ther','kunj'];
+  const VITALS=['nadi','suhu','rr','chol','au','gda'],V_LABELS=['N','S','P','CHOL','AU','GDA'];
+  const CX={};let cur=ML;COL_ORDER.forEach(k=>{CX[k]=cur;cur+=W[k];});
+  const TH1=6.5,TH2=5,THtotal=TH1+TH2;
+  const pfX=CX.td,pfW=W.td+W.nadi+W.suhu+W.rr+W.chol+W.au+W.gda;
+  const RS_COLS=['no','tgl','id','nama','umur','jk','bb','tb','lp','diag','ther','kunj'];
+  const RS_LABELS={no:'NO',tgl:'TANGGAL',id:'NOMOR\nBPJS/NIK',nama:'NAMA',umur:'UMUR',jk:'JK',bb:'BB',tb:'TB',lp:'LP',diag:'DIAGNOSA/\nKELUHAN',ther:'TERAPI/OBAT',kunj:'KUNJUNGAN'};
+  function drawHeader(topY){
+    DC(100,100,100);LW(0.25);
+    doc.line(ML,topY,ML+CW,topY);
+    doc.line(pfX,topY+TH1,pfX+pfW,topY+TH1);
+    doc.line(ML,topY+THtotal,ML+CW,topY+THtotal);
+    doc.line(ML,topY,ML,topY+THtotal);doc.line(ML+CW,topY,ML+CW,topY+THtotal);
+    COL_ORDER.forEach((k,i)=>{if(i===0)return;const x=CX[k];if(x>pfX&&x<pfX+pfW){doc.line(x,topY+TH1,x,topY+THtotal);}else{doc.line(x,topY,x,topY+THtotal);}});
+    TC(15,23,42);SF('bold',5.5);
+    RS_COLS.forEach(k=>{const cw=W[k],cx=CX[k];const lines=RS_LABELS[k].split('\n');const lh=3.2,totalH=lines.length*lh;const sY=topY+THtotal/2-totalH/2+lh*0.75;lines.forEach((l,i)=>T(l,cx+cw/2,sY+i*lh,{align:'center'}));});
+    T('PEMERIKSAAN FISIK',pfX+pfW/2,topY+TH1/2+1.3,{align:'center'});
+    const subMid=topY+TH1+TH2/2+1.3;
+    T('TD',CX.td+W.td/2,subMid,{align:'center'});
+    VITALS.forEach((k,i)=>T(V_LABELS[i],CX[k]+W[k]/2,subMid,{align:'center'}));
+  }
+  let tY=y;drawHeader(tY);let dY=tY+THtotal;
+  const PAD=1,LH_TEXT=3.5;
+  function cellCenter(txt,col,rowTop,rowH){
+    const t=String(txt==null?'':txt).toUpperCase();if(!t)return;
+    const cw=W[col],cx2=CX[col]+cw/2,cy=rowTop+rowH/2+1.5,maxW=cw-1;
+    if(doc.getTextWidth(t)>maxW){SF('normal',5.5);T(t,cx2,cy,{align:'center',maxWidth:maxW});SF('normal',6.5);}
+    else T(t,cx2,cy,{align:'center'});
+  }
+  function cellLeft(txt,col,rowTop,rowH){
+    const t=String(txt==null?'':txt).toUpperCase();if(!t)return;
+    const cw=W[col],lines=doc.splitTextToSize(t,cw-PAD*2),lh=LH_TEXT,totalH=lines.length*lh,startY=rowTop+rowH/2-totalH/2+lh*0.75;
+    lines.forEach((l,i)=>T(l,CX[col]+PAD,startY+i*lh));
+  }
+  function cellBullets(txt,col,rowTop,rowH){
+    const raw=String(txt==null?'':txt).toUpperCase();
+    const rawLines=raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    if(!rawLines.length)return;
+    const cw=W[col],lh=3.6,totalH=rawLines.length*lh,startY=rowTop+rowH/2-totalH/2+lh*0.75;
+    rawLines.forEach((l,i)=>{
+      if(l.startsWith('•')){T('•',CX[col]+PAD,startY+i*lh);const wrapped=doc.splitTextToSize(l.replace(/^•\s*/,''),cw-PAD*2-3);wrapped.forEach((wl,wi)=>T(wl,CX[col]+PAD+3,startY+i*lh+wi*lh));}
+      else{const wrapped=doc.splitTextToSize(l,cw-PAD*2);wrapped.forEach((wl,wi)=>T(wl,CX[col]+PAD,startY+i*lh+wi*lh));}
+    });
+  }
+  function drawRowBorders(rowTop,rowH){
+    DC(100,100,100);LW(0.25);
+    doc.line(ML,rowTop+rowH,ML+CW,rowTop+rowH);
+    COL_ORDER.forEach((k,i)=>{if(i===0)return;doc.line(CX[k],rowTop,CX[k],rowTop+rowH);});
+    doc.line(ML+CW,rowTop,ML+CW,rowTop+rowH);
+  }
+  SF('normal',6.5);TC(15,23,42);
+  const ROW_MIN=7;
+  data.forEach((r,i)=>{
+    const therLines=String(r.ther||'').toUpperCase().split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    const diagLines=doc.splitTextToSize((r.diag||'').toUpperCase(),W.diag-PAD*2);
+    const namaLines=doc.splitTextToSize((r.nama||'').toUpperCase(),W.nama-PAD*2);
+    const maxLines=Math.max(therLines.length,diagLines.length,namaLines.length,1);
+    const rh=Math.max(ROW_MIN,maxLines*3.6+2);
+    if(dY+rh>PH-MB-12){
+      DC(60,60,60);LW(0.3);doc.line(ML,dY,ML+CW,dY);doc.line(ML,tY,ML,dY);doc.line(ML+CW,tY,ML+CW,dY);
+      doc.addPage();tY=MT;drawHeader(tY);dY=tY+THtotal;SF('normal',6.5);TC(15,23,42);
+    }
+    cellCenter(i+1,'no',dY,rh);
+    let tglD=r.tgl||'';if(tglD&&tglD.includes('-')){const p=tglD.split('-');if(p.length===3)tglD=p[2]+'/'+p[1]+'/'+p[0].slice(-2);}
+    cellCenter(tglD,'tgl',dY,rh);
+    SF('normal',5.8);
+    const idT=String(r.nomor||'').toUpperCase(),idCY=dY+rh/2+1.5,idW=W.id;
+    if(doc.getTextWidth(idT)>idW-1){const idLines=doc.splitTextToSize(idT,idW-1);const idSY=dY+rh/2-(idLines.length*3.2)/2+3.2*0.75;idLines.forEach((l,li)=>T(l,CX.id+idW/2,idSY+li*3.2,{align:'center'}));}
+    else T(idT,CX.id+idW/2,idCY,{align:'center'});
+    SF('normal',6.5);
+    cellLeft(r.nama,'nama',dY,rh);
+    cellCenter(r.umur,'umur',dY,rh);cellCenter(r.jk,'jk',dY,rh);
+    cellCenter(r.bb,'bb',dY,rh);cellCenter(r.tb,'tb',dY,rh);cellCenter(r.lp,'lp',dY,rh);
+    SF('normal',6);cellCenter(r.td,'td',dY,rh);SF('normal',6.5);
+    cellCenter(r.nadi,'nadi',dY,rh);cellCenter(r.suhu,'suhu',dY,rh);cellCenter(r.rr,'rr',dY,rh);
+    cellCenter(r.chol,'chol',dY,rh);cellCenter(r.au,'au',dY,rh);cellCenter(r.gda,'gda',dY,rh);
+    cellLeft(r.diag,'diag',dY,rh);
+    cellBullets(r.ther,'ther',dY,rh);
+    cellCenter(r.kunj,'kunj',dY,rh);
+    drawRowBorders(dY,rh);dY+=rh;
+  });
+  // Baris kosong minimum
+  const minBlank=Math.max(0,5-data.length);
+  for(let ei=0;ei<minBlank;ei++){
+    if(dY+ROW_MIN>PH-MB-12){DC(60,60,60);LW(0.3);doc.line(ML,dY,ML+CW,dY);doc.line(ML,tY,ML,dY);doc.line(ML+CW,tY,ML+CW,dY);doc.addPage();tY=MT;drawHeader(tY);dY=tY+THtotal;SF('normal',6.5);TC(15,23,42);}
+    cellCenter(data.length+ei+1,'no',dY,ROW_MIN);drawRowBorders(dY,ROW_MIN);dY+=ROW_MIN;
+  }
+  DC(100,100,100);LW(0.25);doc.line(ML,tY,ML,dY);doc.line(ML+CW,tY,ML+CW,dY);doc.line(ML,dY,ML+CW,dY);
+  const totalPages=doc.getNumberOfPages();
+  for(let p=1;p<=totalPages;p++){doc.setPage(p);SF('normal',7);TC(148,163,184);T('Halaman '+p+' / '+totalPages,PW/2,PH-4,{align:'center'});}
+  return doc;
+}
+
+// ---- ACTIONS ----
+function rjtpPreviewPDF(){
+  if(!rjtpValidate())return;
+  const btn=document.getElementById('rjtp-prev-btn');
+  btn.disabled=true;btn.textContent='⏳ Memuat...';
+  rjtpShowProgress();rjtpSetProgress(20);
+  setTimeout(()=>{
+    try{
+      rjtpSetProgress(50);const doc=rjtpBuildPDF();rjtpSetProgress(80);
+      const url=URL.createObjectURL(doc.output('blob'));
+      const bulanNum=parseInt(document.getElementById('rjtp-bulan').value);
+      const tahun=document.getElementById('rjtp-tahun').value;
+      const desa=document.getElementById('rjtp-desa').value;
+      document.getElementById('rjtp-modal-title').textContent='Pratinjau RJTP — '+desa+' '+RJTP_BULAN_UP[bulanNum]+' '+tahun;
+      document.getElementById('rjtp-modal-info').textContent=rjtpCollect().length+' data pasien · '+doc.getNumberOfPages()+' halaman · A4 Landscape';
+      document.getElementById('rjtp-modal-bd').innerHTML='<iframe src="'+url+'" style="width:100%;height:600px;border:none;border-radius:4px;box-shadow:0 4px 20px rgba(45,26,36,.2)"></iframe>';
+      document.getElementById('rjtp-modal-ov').classList.add('show');
+      rjtpSetProgress(100);
+    }catch(e){console.error(e);showAlert('al-rjtp','Gagal membuat pratinjau: '+e.message,'e');}
+    rjtpHideProgress();btn.textContent='👁 Pratinjau PDF';btn.disabled=false;
+  },80);
+}
+
+function rjtpDownloadPDF(){
+  if(!rjtpValidate())return;
+  const btn=document.getElementById('rjtp-pdf-btn');
+  btn.disabled=true;btn.textContent='⏳ Membuat PDF...';
+  rjtpShowProgress();rjtpSetProgress(20);
+  setTimeout(()=>{
+    try{
+      rjtpSetProgress(60);const doc=rjtpBuildPDF();rjtpSetProgress(90);
+      const bulanNum=parseInt(document.getElementById('rjtp-bulan').value);
+      const tahun=document.getElementById('rjtp-tahun').value;
+      const desa=document.getElementById('rjtp-desa').value.toUpperCase().replace(/\s+/g,'-');
+      doc.save('RJTP-'+desa+'-'+RJTP_BULAN_UP[bulanNum]+tahun+'.pdf');
+      rjtpSetProgress(100);
+    }catch(e){console.error(e);showAlert('al-rjtp','Gagal: '+e.message,'e');}
+    rjtpHideProgress();btn.textContent='⬇ Unduh PDF';btn.disabled=false;
+  },80);
+}
+
+function rjtpDownloadXLSX(){
+  if(!rjtpValidate())return;
+  const btn=document.getElementById('rjtp-xlsx-btn');
+  btn.disabled=true;btn.textContent='⏳ Membuat XLSX...';
+  rjtpShowProgress();rjtpSetProgress(20);
+  setTimeout(()=>{
+    try{
+      const bulanNum=parseInt(document.getElementById('rjtp-bulan').value);
+      const tahun=document.getElementById('rjtp-tahun').value;
+      const desa=document.getElementById('rjtp-desa').value.toUpperCase();
+      const data=rjtpCollect();
+      rjtpSetProgress(40);
+      const wb=XLSX.utils.book_new();
+      const ws_data=[];
+      ws_data.push(['LAPORAN PELAYANAN RAWAT JALAN TINGKAT PERTAMA (RJTP)']);
+      ws_data.push(['BULAN : '+RJTP_BULAN_NAMA[bulanNum]+'   TAHUN : '+tahun]);
+      ws_data.push(['']);
+      ws_data.push(['NAMA FASKES','','','','UPTD PUSKESMAS MOWEWE']);
+      ws_data.push(['ALAMAT','','','','KECAMATAN MOWEWE']);
+      ws_data.push(['NAMA DESA/KELURAHAN','','','',desa]);
+      ws_data.push(['']);
+      ws_data.push(['NO','TANGGAL','NOMOR BPJS/NIK','NAMA','UMUR','JK','BB','TB','LP','PEMERIKSAAN FISIK','','','','','','','DIAGNOSA/KELUHAN','TERAPI/OBAT','KUNJUNGAN']);
+      ws_data.push(['','','','','','','','','','TD','N','S','P','CHOL','AU','GDA','','','']);
+      rjtpSetProgress(60);
+      data.forEach((r,i)=>{
+        let tglD=r.tgl||'';if(tglD&&tglD.includes('-')){const p=tglD.split('-');if(p.length===3)tglD=p[2]+'/'+p[1]+'/'+p[0];}
+        ws_data.push([i+1,tglD,r.nomor,r.nama,r.umur?parseInt(r.umur)||r.umur:'',r.jk,r.bb?parseFloat(r.bb)||r.bb:'',r.tb?parseFloat(r.tb)||r.tb:'',r.lp?parseFloat(r.lp)||r.lp:'',r.td,r.nadi?parseFloat(r.nadi)||r.nadi:'',r.suhu||'',r.rr?parseFloat(r.rr)||r.rr:'',r.chol?parseFloat(r.chol)||r.chol:'',r.au||'',r.gda?parseFloat(r.gda)||r.gda:'',r.diag,r.ther,r.kunj]);
+      });
+      const ws=XLSX.utils.aoa_to_sheet(ws_data);
+      const tc=19,merges=[];
+      merges.push({s:{r:0,c:0},e:{r:0,c:tc-1}});merges.push({s:{r:1,c:0},e:{r:1,c:tc-1}});
+      [3,4,5].forEach(r=>{merges.push({s:{r,c:0},e:{r,c:3}});merges.push({s:{r,c:4},e:{r,c:tc-1}});});
+      merges.push({s:{r:7,c:9},e:{r:7,c:15}});
+      [0,1,2,3,4,5,6,7,8,16,17,18].forEach(c=>{merges.push({s:{r:7,c},e:{r:8,c}});});
+      ws['!merges']=merges;
+      ws['!cols']=[{wch:5},{wch:12},{wch:18},{wch:20},{wch:6},{wch:5},{wch:6},{wch:6},{wch:6},{wch:14},{wch:6},{wch:7},{wch:6},{wch:8},{wch:7},{wch:8},{wch:24},{wch:30},{wch:10}];
+      ws['!rows']=[];ws['!rows'][0]={hpt:22};ws['!rows'][1]={hpt:16};ws['!rows'][7]={hpt:20};ws['!rows'][8]={hpt:18};
+      rjtpSetProgress(85);
+      XLSX.utils.book_append_sheet(wb,ws,'Laporan RJTP');
+      XLSX.writeFile(wb,'RJTP-'+desa.replace(/\s+/g,'-')+'-'+RJTP_BULAN_UP[bulanNum]+tahun+'.xlsx');
+      rjtpSetProgress(100);
+    }catch(e){console.error(e);showAlert('al-rjtp','Gagal buat XLSX: '+(e.message||e),'e');}
+    rjtpHideProgress();btn.textContent='⬇ Unduh XLSX';btn.disabled=false;
+  },80);
+}
+
+function closeRjtpModal(){
+  document.getElementById('rjtp-modal-ov').classList.remove('show');
+  document.getElementById('rjtp-modal-bd').innerHTML='<div style="color:#A07A8E;font-size:13px;padding:40px">Memuat pratinjau...</div>';
+}
+</script>
+
+</body>
+</html>
