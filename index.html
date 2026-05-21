@@ -3760,7 +3760,7 @@ function autoFillRjtp(){
     let therLines=[];
     if(r.tindakan&&r.tindakan.trim()) therLines.push(r.tindakan.trim().toUpperCase());
     if(r.jenisObat==='desa'&&r.obat&&r.obat.length){r.obat.forEach(o=>{therLines.push('• '+o.namaObat.toUpperCase()+' ×'+o.qty);});}
-    else if(r.jenisObat==='puskesmas'&&r.obatPuskesmas){therLines.push('• '+r.obatPuskesmas.toUpperCase());}
+   else if(r.jenisObat==='puskesmas'&&r.obatPuskesmas){r.obatPuskesmas.split('\n').map(o=>o.trim()).filter(o=>o).forEach(o=>{therLines.push('• '+o.toUpperCase());});}
     rjtpAddRow({tgl:r.tgl,nomor:r.bpjs||r.nik||r.nomor||'',nama:r.namaPasien,umur:umurNum,jk:r.jk,bb:pm.bb,tb:pm.tb,lp:pm.lp,sistol,diastol,nadi:pm.n,suhu:pm.s,rr:pm.p,chol:pm.chol,au:pm.au,gda:pm.gda,diag:r.diagnosa,ther:therLines.join('\n'),kunj:r.jenisKunjungan==='baru'?'BARU':'LAMA'},true);
   });
   rjtpRenumber();
