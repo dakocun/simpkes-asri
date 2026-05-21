@@ -3097,6 +3097,10 @@ function bukaPopupLayanan(id) {
         {v:'posyandu',       l:'👶 Posyandu'},
         {v:'kantor-desa',    l:'🏛 Kantor Desa'}
       ])
+    + selOpts('jenisKunjungan', r.jenisKunjungan, 'Jenis Kunjungan', [
+    {v:'baru', l:'🆕 Kunjungan Baru'},
+    {v:'lama', l:'🔄 Kunjungan Lama'}
+      ])
     + inp('namaPasien', r.namaPasien, 'text', 'Nama Pasien')
     + selOpts('jk', r.jk, 'Jenis Kelamin', [{v:'',l:'-- Pilih --'},{v:'L',l:'Laki-laki'},{v:'P',l:'Perempuan'}])
     + inp('tglLahir', r.tglLahir, 'date', 'Tanggal Lahir')
@@ -3148,6 +3152,7 @@ async function simpanEditLayanan() {
 
   r.tgl          = g('tgl');
   r.jenisLayanan = g('jenisLayanan');
+  r.jenisKunjungan = g('jenisKunjungan');
   r.namaPasien   = g('namaPasien').toUpperCase();
   r.jk           = g('jk');
   r.tglLahir     = g('tglLahir');
